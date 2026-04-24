@@ -1,0 +1,1 @@
+export { VectorAiGrpcClient } from "./VectorAiGrpcClient";
