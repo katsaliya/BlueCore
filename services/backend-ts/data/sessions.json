@@ -1,0 +1,207 @@
+{
+  "session-1776043047823-2t53c4": {
+    "sessionId": "session-1776043047823-2t53c4",
+    "createdAt": "2026-04-13T01:17:27.823Z",
+    "history": [
+      {
+        "role": "user",
+        "text": "I feel tired before my shift",
+        "timestamp": "2026-04-13T01:17:57.303Z"
+      },
+      {
+        "role": "assistant",
+        "text": "Okay, it's understandable to feel tired before a shift. Let’s address this calmly. \n\nFirstly, can you check if you’re adequately hydrated and have eaten something recently? Sometimes, simple things like this can make a difference. \n\nIf you’re still feeling fatigued, let’s talk to your supervisor. They can help assess if you’re fit for duty and discuss any potential adjustments to your tasks. \n\nIf you're concerned about your level of tiredness or it's significantly impacting your ability to work safely, please stop and seek urgent help from a supervisor and local emergency services immediately.",
+        "timestamp": "2026-04-13T01:17:59.867Z"
+      }
+    ]
+  },
+  "session-1776054362578-6xamrs": {
+    "sessionId": "session-1776054362578-6xamrs",
+    "createdAt": "2026-04-13T04:26:02.578Z",
+    "history": [
+      {
+        "role": "user",
+        "text": "I feel tired before my shift",
+        "timestamp": "2026-04-13T04:26:19.644Z"
+      },
+      {
+        "role": "assistant",
+        "text": "Okay, it’s understandable to feel tired before a shift. Let’s address this.\n\nFirstly, let’s check in – how long have you been feeling this way? Have there been any changes to your sleep recently? \n\nIt’s important to prioritise your wellbeing. Try hydrating with water and having a light, healthy snack.  If possible, avoid any safety-critical tasks until you feel more alert.\n\nIf this is a regular occurrence, or you’re concerned, notify your supervisor immediately. They can help assess your fit-for-duty and ensure your safety.",
+        "timestamp": "2026-04-13T04:26:26.277Z"
+      }
+    ]
+  },
+  "session-1776543762130-xd8ywd": {
+    "sessionId": "session-1776543762130-xd8ywd",
+    "createdAt": "2026-04-18T20:22:42.130Z",
+    "history": [
+      {
+        "role": "user",
+        "text": "I feel tired before my shift.",
+        "timestamp": "2026-04-18T20:25:02.836Z"
+      },
+      {
+        "role": "assistant",
+        "text": "Okay, let’s address that. Feeling tired before a shift is common, but it’s important to manage it safely. \n\nFirst, let’s check in – how long have you been feeling this way? Have you had enough sleep recently, and are you hydrated? \n\nIf you’re still feeling significantly fatigued, it’s best to notify your supervisor immediately. They can help assess if you’re fit to work.\n\nAvoid any safety-critical tasks while you’re feeling this way. Prioritize rest, hydration, and a small, nutritious snack if possible.",
+        "timestamp": "2026-04-18T20:25:16.882Z"
+      }
+    ]
+  },
+  "session-1776995630414-l1pjq8": {
+    "sessionId": "session-1776995630414-l1pjq8",
+    "createdAt": "2026-04-24T01:53:50.414Z",
+    "history": [
+      {
+        "role": "user",
+        "text": "Hi, how are you? I feel a bit lonely after this shift.",
+        "timestamp": "2026-04-24T01:54:12.335Z"
+      },
+      {
+        "role": "assistant",
+        "text": "It’s understandable to feel a bit low after a shift, especially when you’re feeling lonely. It’s good you’re acknowledging how you’re feeling. \n\nRight now, let’s focus on getting you feeling a little more comfortable. Have you had a chance to hydrate and grab some food? \n\nIt’s okay to feel this way. Perhaps a short break to connect with someone, if possible, could help. \n\nIf these feelings persist or you're struggling, please let your supervisor know. They can offer support and ensure you’re fit for duty.",
+        "timestamp": "2026-04-24T01:54:24.390Z"
+      },
+      {
+        "role": "user",
+        "text": "Hi, how are you? I feel a bit lonely and tired about after my shift today.",
+        "timestamp": "2026-04-24T01:55:42.185Z"
+      },
+      {
+        "role": "assistant",
+        "text": "It’s understandable to feel that way after a shift, especially when you’re also experiencing loneliness. It’s good you’re acknowledging how you’re feeling. \n\nLet’s focus on getting you feeling a bit better. First, can you have a drink of water and a small snack? Sometimes dehydration and low blood sugar can contribute to fatigue and feelings of isolation.\n\nIt might also be helpful to let your supervisor know you’re feeling this way. They can offer support and ensure you’re not being asked to do tasks you’re not up for. \n\nIf these feelings persist or you’re concerned about your wellbeing, please stop what you’re doing and seek help from a supervisor and emergency services immediately.",
+        "timestamp": "2026-04-24T01:55:45.816Z"
+      },
+      {
+        "role": "user",
+        "text": "Hi, how are you? I feel a bit lonely and tired about after my shift today.",
+        "timestamp": "2026-04-24T02:18:20.402Z"
+      },
+      {
+        "role": "assistant",
+        "text": "It’s understandable to feel that way after a shift, especially when you’re also experiencing loneliness. It’s common to feel drained and isolated. Let’s focus on getting you feeling a bit better. \n\nFirst, can you try to hydrate and have a light snack? Sometimes, low blood sugar or dehydration can contribute to fatigue and feelings of loneliness. \n\nNext, if possible, try to find a quiet space to rest for 15-20 minutes. Gentle stretching or deep breathing can also help. \n\nFinally, let your supervisor know you’re feeling this way. They can offer support and help you prioritize your wellbeing and safely manage any tasks.",
+        "timestamp": "2026-04-24T02:18:29.166Z"
+      }
+    ]
+  },
+  "session-1776997161479-l9ofq2": {
+    "sessionId": "session-1776997161479-l9ofq2",
+    "createdAt": "2026-04-24T02:19:21.479Z",
+    "history": []
+  },
+  "session-1776997593127-j0mvtf": {
+    "sessionId": "session-1776997593127-j0mvtf",
+    "createdAt": "2026-04-24T02:26:33.127Z",
+    "history": [
+      {
+        "role": "user",
+        "text": "Hi, how are you? I feel a bit lonely and tired about after my shift today.",
+        "timestamp": "2026-04-24T02:27:50.690Z"
+      },
+      {
+        "role": "assistant",
+        "text": "It’s understandable to feel that way after a shift, especially when you’re also experiencing loneliness. It’s good you’re recognizing how you’re feeling. \n\nLet’s focus on getting you feeling a bit better. First, have you had anything to eat and drink since finishing your shift? Staying hydrated and having some food can help. \n\nCould you try a short break to do something relaxing – even just a few minutes of quiet time? Then, let’s talk to your supervisor about how you’re feeling. \n\nIf you’re still feeling significantly unwell, or if you’re concerned about your safety or the safety of others, please stop and seek urgent help from a supervisor and local emergency services immediately.",
+        "timestamp": "2026-04-24T02:28:00.156Z"
+      }
+    ]
+  },
+  "session-1776997894180-utozfy": {
+    "sessionId": "session-1776997894180-utozfy",
+    "createdAt": "2026-04-24T02:31:34.180Z",
+    "history": [
+      {
+        "role": "user",
+        "text": "I feel tired before my shift",
+        "timestamp": "2026-04-24T02:31:38.358Z"
+      },
+      {
+        "role": "assistant",
+        "text": "Okay, it's understandable to feel tired before a shift. Let’s address this calmly.\n\nFirstly, let’s check in – how long have you been feeling this way? Have there been any changes in your sleep, diet, or stress levels recently? \n\nNext, prioritise hydration and a light snack if you haven’t eaten.  Then, consider if you can complete a basic fit-for-duty check with your supervisor – this includes assessing your alertness and physical condition.\n\nIf this is a frequent occurrence, or you’re concerned, notify your supervisor immediately.  Don't push yourself if you’re not feeling your best.",
+        "timestamp": "2026-04-24T02:31:42.307Z"
+      },
+      {
+        "role": "user",
+        "text": "Hi, how are you? I feel a bit lonely and tired about after my shift today.",
+        "timestamp": "2026-04-24T02:32:08.685Z"
+      },
+      {
+        "role": "assistant",
+        "text": "It’s understandable to feel that way after a shift, especially when you’re also experiencing loneliness. It’s common for fatigue to amplify those feelings. Let’s focus on getting you feeling a bit better.\n\nFirst, can you hydrate and have a small, nutritious snack? Sometimes a little fuel and water can make a difference. Then, let's aim for a short rest if possible.\n\nIt’s good you’re recognizing these feelings.  Notify your supervisor about how you’re doing – they can offer support and ensure you’re not pushed beyond your limits. \n\nIf these feelings persist or you're concerned about your wellbeing, please stop and seek help from a supervisor and emergency services immediately.",
+        "timestamp": "2026-04-24T02:32:12.101Z"
+      }
+    ]
+  },
+  "session-1776998834354-961nmh": {
+    "sessionId": "session-1776998834354-961nmh",
+    "createdAt": "2026-04-24T02:47:14.354Z",
+    "history": [
+      {
+        "role": "user",
+        "text": "Oh, I feel very hungry. I'm starving before my shift.",
+        "timestamp": "2026-04-24T02:47:45.451Z"
+      },
+      {
+        "role": "assistant",
+        "text": "It’s understandable to feel that way – low blood sugar can definitely impact your energy levels and focus. Let’s get you sorted.\n\nHaving a substantial, nutritious meal before your shift is a good start. Focus on foods with complex carbohydrates and some protein for sustained energy. \n\nCould you also hydrate? Dehydration can mimic hunger and worsen fatigue. \n\nNotify your supervisor about how you're feeling. They can help ensure you're properly assessed before starting your duties.",
+        "timestamp": "2026-04-24T02:47:53.875Z"
+      }
+    ]
+  },
+  "session-1777000162972-bxe9zr": {
+    "sessionId": "session-1777000162972-bxe9zr",
+    "createdAt": "2026-04-24T03:09:22.972Z",
+    "history": [
+      {
+        "role": "user",
+        "text": "I feel very hungry and tired.",
+        "timestamp": "2026-04-24T03:09:47.701Z"
+      },
+      {
+        "role": "assistant",
+        "text": "Okay, that’s understandable. Hunger and fatigue can really build up out there. Let’s address this.\n\nFirst, hydrate with some water. Then, try to have a small, nutritious snack – something with protein and carbs is good. \n\nNext, can you briefly check in with yourself? On a scale of 1 to 10, how would you rate your alertness level? \n\nIf you're significantly impaired, it's best to notify your supervisor and consider avoiding any safety-critical tasks.",
+        "timestamp": "2026-04-24T03:09:56.640Z"
+      }
+    ]
+  },
+  "session-1777000644986-2e5c7p": {
+    "sessionId": "session-1777000644986-2e5c7p",
+    "createdAt": "2026-04-24T03:17:24.986Z",
+    "history": [
+      {
+        "role": "user",
+        "text": "I think I have a terrible headache. I think I have a problem with blood vessels.",
+        "timestamp": "2026-04-24T03:17:47.619Z"
+      },
+      {
+        "role": "assistant",
+        "text": "Okay, I understand you’re experiencing a headache and have some concerns about your blood vessels. It’s good you’re recognizing how you’re feeling. \n\nA headache can be caused by many things, and it’s important to address it. Let’s start with some basic steps. Could you try resting in a quiet, dark place? \n\nHydration and a light snack can also sometimes help. Please check in with your supervisor about your symptoms and how they might affect your work.\n\n**If you experience any of the following, stop what you’re doing and seek urgent help immediately:** fainting, loss of consciousness, severe chest pain, or feeling unsafe to continue work.",
+        "timestamp": "2026-04-24T03:17:56.707Z"
+      }
+    ]
+  },
+  "session-1777060117885-1es8ou": {
+    "sessionId": "session-1777060117885-1es8ou",
+    "createdAt": "2026-04-24T19:48:37.885Z",
+    "history": [
+      {
+        "role": "user",
+        "text": "I am exhausted today",
+        "timestamp": "2026-04-24T19:48:50.148Z"
+      },
+      {
+        "role": "assistant",
+        "text": "Okay, I understand you’re feeling exhausted today. That’s completely understandable, especially in demanding roles. Let’s focus on getting you feeling a bit better.\n\nFirst, can you take a few moments to hydrate and have a light snack? Sometimes, a little fuel and water can make a difference. \n\nIf possible, try to take a short break – even 15 minutes can help. Avoid any safety-critical tasks while you’re feeling this way.\n\nIf this feeling persists or you’re concerned, please notify your supervisor immediately. It’s important to assess your fit-for-duty and ensure your safety and the safety of others.",
+        "timestamp": "2026-04-24T19:49:01.996Z"
+      },
+      {
+        "role": "user",
+        "text": "Hello, I am just getting off my shift right now and there's a problem with the big machines.",
+        "timestamp": "2026-04-24T19:50:38.498Z"
+      },
+      {
+        "role": "assistant",
+        "text": "Okay, it sounds like a tough end to your shift. Dealing with machinery issues can be stressful. Let’s focus on getting you settled. \n\nFirst, can you take a few minutes to just sit down and take a few deep breaths? It’s good to acknowledge the situation and start to de-stress. \n\nNext, let’s hydrate and have a small, nutritious snack if you can. Then, please notify your supervisor about the issue with the machinery. \n\nIf you’re feeling particularly drained or concerned, it's always best to check in with them about your fit-for-duty status before continuing with any personal tasks.",
+        "timestamp": "2026-04-24T19:50:45.670Z"
+      }
+    ]
+  }
+}
