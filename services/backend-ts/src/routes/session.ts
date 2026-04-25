@@ -5,10 +5,12 @@ import multer from "multer";
 import { Router } from "express";
 import { z } from "zod";
 import {
-  appendMessage,
-  createSession,
-  getSession
-} from "../store/sessionStore";
+  appendSqliteMessageWithId,
+  createSqliteSession,
+  getSqliteSession,
+  listUserSessions,
+  userOwnsSession
+} from "../store/sqliteSessionStore";
 import {
   queryVectorAiBridge,
   upsertVectorAiBridge
@@ -18,6 +20,9 @@ import {
   transcribeAudioFile
 } from "../services/voiceBridge";
 import { LocalLlmStubProvider } from "../providers/llm/LocalLlmStubProvider";
+import { requireAuth } from "../middleware/requireAuth";
+import { AuthenticatedRequest } from "../types/auth";
+import { saveAudioBuffer } from "../store/audioStore";
 
 const router = Router();
 const upload = multer({ dest: path.join(os.tmpdir(), "greenwatch-uploads") });
@@ -32,10 +37,39 @@ const messageSchema = z.object({
   text: z.string().min(1)
 });
 
-async function handleSessionTextMessage(sessionId: string, text: string) {
-  const session = getSession(sessionId);
+function extensionFromFilename(filename?: string | null, fallback = ".bin") {
+  if (!filename) return fallback;
+  const ext = path.extname(filename);
+  return ext || fallback;
+}
 
-  if (!session) {
+function extensionFromMimeType(mimeType?: string | null) {
+  switch (mimeType) {
+    case "audio/wav":
+    case "audio/x-wav":
+      return ".wav";
+    case "audio/mpeg":
+      return ".mp3";
+    case "audio/mp4":
+    case "audio/x-m4a":
+      return ".m4a";
+    case "audio/ogg":
+      return ".ogg";
+    case "audio/webm":
+      return ".webm";
+    default:
+      return ".bin";
+  }
+}
+
+async function handleSessionTextMessage(
+  userId: number,
+  sessionId: string,
+  text: string
+) {
+  const session = getSqliteSession(sessionId);
+
+  if (!session || !userOwnsSession(userId, sessionId)) {
     return {
       status: 404,
       body: {
@@ -47,11 +81,21 @@ async function handleSessionTextMessage(sessionId: string, text: string) {
 
   const userTimestamp = new Date().toISOString();
 
-  appendMessage(sessionId, {
+  const userInsert = appendSqliteMessageWithId(sessionId, {
     role: "user",
     text,
     timestamp: userTimestamp
   });
+
+  if (!userInsert) {
+    return {
+      status: 404,
+      body: {
+        ok: false,
+        message: "Session not found"
+      }
+    };
+  }
 
   try {
     await upsertVectorAiBridge({
@@ -61,6 +105,8 @@ async function handleSessionTextMessage(sessionId: string, text: string) {
           id: `user-${Date.now()}`,
           text,
           metadata: {
+            userId,
+            messageId: userInsert.messageId,
             role: "user",
             timestamp: userTimestamp
           }
@@ -127,7 +173,7 @@ async function handleSessionTextMessage(sessionId: string, text: string) {
 
   const assistantTimestamp = new Date().toISOString();
 
-  const updatedSession = appendMessage(sessionId, {
+  const assistantInsert = appendSqliteMessageWithId(sessionId, {
     role: "assistant",
     text: assistantText,
     timestamp: assistantTimestamp
@@ -140,22 +186,36 @@ async function handleSessionTextMessage(sessionId: string, text: string) {
       sessionId,
       reply: assistantText,
       retrievedMatches,
-      historyLength: updatedSession?.history.length ?? 0
+      historyLength: assistantInsert?.session?.history.length ?? 0,      
+      userMessageId: userInsert.messageId,
+      assistantMessageId: assistantInsert?.messageId ?? null
     }
   };
 }
 
-router.post("/session/start", (_req, res) => {
-  const session = createSession();
+router.get("/sessions", requireAuth, (req: AuthenticatedRequest, res) => {
+  const userId = req.authUser!.id;
+  const sessions = listUserSessions(userId);
+
+  return res.status(200).json({
+    ok: true,
+    sessions
+  });
+});
+
+router.post("/session/start", requireAuth, (req: AuthenticatedRequest, res) => {
+  const userId = req.authUser!.id;
+  const session = createSqliteSession(userId);
 
   return res.status(200).json({
     ok: true,
     sessionId: session.sessionId,
-    createdAt: session.createdAt
+    createdAt: session.createdAt,
+    userId: session.userId
   });
 });
 
-router.get("/session/history", (req, res) => {
+router.get("/session/history", requireAuth, (req: AuthenticatedRequest, res) => {
   const parsed = historyQuerySchema.safeParse(req.query);
 
   if (!parsed.success) {
@@ -165,9 +225,10 @@ router.get("/session/history", (req, res) => {
     });
   }
 
-  const session = getSession(parsed.data.sessionId);
+  const userId = req.authUser!.id;
+  const session = getSqliteSession(parsed.data.sessionId);
 
-  if (!session) {
+  if (!session || !userOwnsSession(userId, parsed.data.sessionId)) {
     return res.status(404).json({
       ok: false,
       message: "Session not found"
@@ -182,7 +243,7 @@ router.get("/session/history", (req, res) => {
   });
 });
 
-router.post("/session/message", async (req, res) => {
+router.post("/session/message", requireAuth, async (req: AuthenticatedRequest, res) => {
   const parsed = messageSchema.safeParse(req.body);
 
   if (!parsed.success) {
@@ -193,7 +254,10 @@ router.post("/session/message", async (req, res) => {
     });
   }
 
+  const userId = req.authUser!.id;
+
   const result = await handleSessionTextMessage(
+    userId,
     parsed.data.sessionId,
     parsed.data.text
   );
@@ -203,10 +267,12 @@ router.post("/session/message", async (req, res) => {
 
 router.post(
   "/session/message/audio",
+  requireAuth,
   upload.single("file"),
-  async (req, res) => {
+  async (req: AuthenticatedRequest, res) => {
     const sessionId = String(req.body.sessionId || "");
     const file = req.file;
+    const userId = req.authUser!.id;
 
     if (!sessionId) {
       return res.status(400).json({
@@ -223,13 +289,39 @@ router.post(
     }
 
     try {
+      const inputBuffer = fs.readFileSync(file.path);
+
       const transcription = await transcribeAudioFile(
         file.path,
         file.originalname,
         file.mimetype
       );
 
-      const result = await handleSessionTextMessage(sessionId, transcription.text);
+      const result = await handleSessionTextMessage(userId, sessionId, transcription.text);
+
+      if (result.status !== 200 || !result.body.ok) {
+        return res.status(result.status).json({
+          ...result.body,
+          transcript: transcription.text,
+          transcriptLanguage: transcription.language,
+          transcriptDuration: transcription.duration
+        });
+      }
+
+      saveAudioBuffer({
+        sessionId,
+        userId,
+        role: "user",
+        kind: "input",
+        mimeType: file.mimetype,
+        originalFilename: file.originalname,
+        durationSeconds: transcription.duration ?? null,
+        buffer: inputBuffer,
+        extension:
+          extensionFromFilename(file.originalname, extensionFromMimeType(file.mimetype)),
+        messageId:
+          "userMessageId" in result.body ? Number(result.body.userMessageId) : null
+      });
 
       return res.status(result.status).json({
         ...result.body,
@@ -249,7 +341,6 @@ router.post(
       try {
         fs.unlinkSync(file.path);
       } catch {
-        // ignore cleanup failure
       }
     }
   }
@@ -257,10 +348,12 @@ router.post(
 
 router.post(
   "/session/message/audio/reply-audio",
+  requireAuth,
   upload.single("file"),
-  async (req, res) => {
+  async (req: AuthenticatedRequest, res) => {
     const sessionId = String(req.body.sessionId || "");
     const file = req.file;
+    const userId = req.authUser!.id;
 
     if (!sessionId) {
       return res.status(400).json({
@@ -277,13 +370,15 @@ router.post(
     }
 
     try {
+      const inputBuffer = fs.readFileSync(file.path);
+
       const transcription = await transcribeAudioFile(
         file.path,
         file.originalname,
         file.mimetype
       );
 
-      const result = await handleSessionTextMessage(sessionId, transcription.text);
+      const result = await handleSessionTextMessage(userId, sessionId, transcription.text);
 
       if (!result.body.ok || !("reply" in result.body)) {
         return res.status(result.status).json({
@@ -294,8 +389,42 @@ router.post(
         });
       }
 
+      const userMessageId =
+        "userMessageId" in result.body ? Number(result.body.userMessageId) : null;
+      const assistantMessageId =
+        "assistantMessageId" in result.body
+          ? Number(result.body.assistantMessageId)
+          : null;
+
+      saveAudioBuffer({
+        sessionId,
+        userId,
+        role: "user",
+        kind: "input",
+        mimeType: file.mimetype,
+        originalFilename: file.originalname,
+        durationSeconds: transcription.duration ?? null,
+        buffer: inputBuffer,
+        extension:
+          extensionFromFilename(file.originalname, extensionFromMimeType(file.mimetype)),
+        messageId: userMessageId
+      });
+
       const replyText = String(result.body.reply || "");
       const wavBuffer = await synthesizeSpeech(replyText);
+
+      saveAudioBuffer({
+        sessionId,
+        userId,
+        role: "assistant",
+        kind: "reply",
+        mimeType: "audio/wav",
+        originalFilename: "greenwatch-reply.wav",
+        durationSeconds: null,
+        buffer: wavBuffer,
+        extension: ".wav",
+        messageId: assistantMessageId
+      });
 
       res.setHeader("Content-Type", "audio/wav");
       res.setHeader("X-GreenWatch-Transcript", encodeURIComponent(transcription.text));
@@ -318,7 +447,6 @@ router.post(
       try {
         fs.unlinkSync(file.path);
       } catch {
-        // ignore cleanup failure
       }
     }
   }

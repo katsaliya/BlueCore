@@ -14,6 +14,8 @@ type SessionStartResponse = {
   ok: boolean;
   sessionId: string;
   createdAt: string;
+  userId?: number | null;
+  message?: string;
 };
 
 type SessionMessageResponse = {
@@ -33,10 +35,56 @@ type SessionMessageResponse = {
   message?: string;
 };
 
+type SessionHistoryResponse = {
+  ok: boolean;
+  sessionId: string;
+  createdAt: string;
+  history: Array<{
+    role: "user" | "assistant";
+    text: string;
+    timestamp: string;
+  }>;
+  message?: string;
+};
+
+type SessionListResponse = {
+  ok: boolean;
+  sessions: Array<{
+    sessionId: string;
+    userId: number | null;
+    createdAt: string;
+    messageCount: number;
+    lastMessageAt: string | null;
+  }>;
+  message?: string;
+};
+
+type AuthUser = {
+  id: number;
+  username: string;
+  displayName: string | null;
+  role: string;
+};
+
+type AuthResponse = {
+  ok: boolean;
+  user?: AuthUser;
+  token?: string;
+  message?: string;
+};
+
 const API_BASE = "http://127.0.0.1:8080";
 
 function App() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
+
+  const [username, setUsername] = useState("sailor1");
+  const [password, setPassword] = useState("pass1234");
+  const [displayName, setDisplayName] = useState("Demo Sailor");
+
+  const [token, setToken] = useState("");
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+
   const [sessionId, setSessionId] = useState("");
   const [createdAt, setCreatedAt] = useState("");
   const [text, setText] = useState("I feel tired before my shift");
@@ -47,6 +95,8 @@ function App() {
   const [sentRecordingUrl, setSentRecordingUrl] = useState("");
 
   const [lastResponse, setLastResponse] = useState<SessionMessageResponse | null>(null);
+  const [sessionHistory, setSessionHistory] = useState<SessionHistoryResponse | null>(null);
+  const [mySessions, setMySessions] = useState<SessionListResponse["sessions"]>([]);
   const [replyAudioUrl, setReplyAudioUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -57,19 +107,21 @@ function App() {
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
 
+  const isLoggedIn = useMemo(() => !!token && !!currentUser, [token, currentUser]);
+
   const canSendText = useMemo(
-    () => sessionId.trim().length > 0 && text.trim().length > 0,
-    [sessionId, text]
+    () => isLoggedIn && sessionId.trim().length > 0 && text.trim().length > 0,
+    [isLoggedIn, sessionId, text]
   );
 
   const selectedAudioAvailable = useMemo(
-    () => sessionId.trim().length > 0 && !!audioFile,
-    [sessionId, audioFile]
+    () => isLoggedIn && sessionId.trim().length > 0 && !!audioFile,
+    [isLoggedIn, sessionId, audioFile]
   );
 
   const recordedAudioAvailable = useMemo(
-    () => sessionId.trim().length > 0 && !!recordedBlob,
-    [sessionId, recordedBlob]
+    () => isLoggedIn && sessionId.trim().length > 0 && !!recordedBlob,
+    [isLoggedIn, sessionId, recordedBlob]
   );
 
   useEffect(() => {
@@ -83,6 +135,13 @@ function App() {
       }
     };
   }, [replyAudioUrl, recordingUrl, sentRecordingUrl]);
+
+  function authHeaders(extra?: Record<string, string>) {
+    return {
+      ...(extra ?? {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    };
+  }
 
   function clearReplyAudio() {
     if (replyAudioUrl) {
@@ -109,26 +168,189 @@ function App() {
     }
   }
 
+  async function registerUser() {
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(`${API_BASE}/auth/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          username,
+          password,
+          displayName
+        })
+      });
+
+      const data = (await response.json()) as AuthResponse;
+
+      if (!response.ok || !data.ok || !data.token || !data.user) {
+        throw new Error(data.message || "Register failed");
+      }
+
+      setToken(data.token);
+      setCurrentUser(data.user);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to register");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loginUser() {
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(`${API_BASE}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          username,
+          password
+        })
+      });
+
+      const data = (await response.json()) as AuthResponse;
+
+      if (!response.ok || !data.ok || !data.token || !data.user) {
+        throw new Error(data.message || "Login failed");
+      }
+
+      setToken(data.token);
+      setCurrentUser(data.user);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to login");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadMe() {
+    if (!token) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(`${API_BASE}/auth/me`, {
+        method: "GET",
+        headers: authHeaders()
+      });
+
+      const data = (await response.json()) as AuthResponse;
+
+      if (!response.ok || !data.ok || !data.user) {
+        throw new Error(data.message || "Failed to load current user");
+      }
+
+      setCurrentUser(data.user);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load current user");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function logout() {
+    setToken("");
+    setCurrentUser(null);
+    setSessionId("");
+    setCreatedAt("");
+    setLastResponse(null);
+    setSessionHistory(null);
+    setMySessions([]);
+    clearReplyAudio();
+  }
+
+  async function loadMySessions() {
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(`${API_BASE}/sessions`, {
+        method: "GET",
+        headers: authHeaders()
+      });
+
+      const data = (await response.json()) as SessionListResponse;
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.message || "Failed to load sessions");
+      }
+
+      setMySessions(data.sessions);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load sessions");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function startSession() {
     setLoading(true);
     setError("");
     setLastResponse(null);
+    setSessionHistory(null);
     clearReplyAudio();
 
     try {
       const response = await fetch(`${API_BASE}/session/start`, {
         method: "POST",
-        headers: {
+        headers: authHeaders({
           "Content-Type": "application/json"
-        },
+        }),
         body: "{}"
       });
 
       const data = (await response.json()) as SessionStartResponse;
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.message || "Failed to start session");
+      }
+
       setSessionId(data.sessionId);
       setCreatedAt(data.createdAt);
+      await loadMySessions();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start session");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadHistory(targetSessionId?: string) {
+    const activeSessionId = targetSessionId || sessionId;
+    if (!activeSessionId) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(
+        `${API_BASE}/session/history?sessionId=${encodeURIComponent(activeSessionId)}`,
+        {
+          method: "GET",
+          headers: authHeaders()
+        }
+      );
+
+      const data = (await response.json()) as SessionHistoryResponse;
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.message || "Failed to load history");
+      }
+
+      setSessionId(data.sessionId);
+      setCreatedAt(data.createdAt);
+      setSessionHistory(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load history");
     } finally {
       setLoading(false);
     }
@@ -143,9 +365,9 @@ function App() {
     try {
       const response = await fetch(`${API_BASE}/session/message`, {
         method: "POST",
-        headers: {
+        headers: authHeaders({
           "Content-Type": "application/json"
-        },
+        }),
         body: JSON.stringify({
           sessionId,
           text
@@ -153,7 +375,14 @@ function App() {
       });
 
       const data = (await response.json()) as SessionMessageResponse;
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.message || "Failed to send text");
+      }
+
       setLastResponse(data);
+      await loadHistory(sessionId);
+      await loadMySessions();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to send text");
     } finally {
@@ -242,11 +471,19 @@ function App() {
 
       const response = await fetch(`${API_BASE}/session/message/audio`, {
         method: "POST",
+        headers: authHeaders(),
         body: form
       });
 
       const data = (await response.json()) as SessionMessageResponse;
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.message || "Failed to send audio");
+      }
+
       setLastResponse(data);
+      await loadHistory(sessionId);
+      await loadMySessions();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to send audio");
     } finally {
@@ -267,6 +504,7 @@ function App() {
 
       const response = await fetch(`${API_BASE}/session/message/audio/reply-audio`, {
         method: "POST",
+        headers: authHeaders(),
         body: form
       });
 
@@ -296,9 +534,11 @@ function App() {
         reply
       });
 
+      await loadHistory(sessionId);
+      await loadMySessions();
+
       setTimeout(() => {
         replyAudioRef.current?.play().catch(() => {
-          // ignore autoplay failure
         });
       }, 100);
     } catch (err) {
@@ -315,28 +555,27 @@ function App() {
 
   async function sendSelectedAudioWithVoice() {
     if (!audioFile) return;
-
     const localUrl = URL.createObjectURL(audioFile);
     await sendAudioWithReplyVoice(audioFile, localUrl);
   }
 
   async function sendRecordedAudioWithVoice() {
-  if (!recordedBlob) return;
+    if (!recordedBlob) return;
 
-  const extension =
-    recordedBlob.type.includes("mp4")
-      ? "m4a"
-      : recordedBlob.type.includes("ogg")
-      ? "ogg"
-      : "webm";
+    const extension =
+      recordedBlob.type.includes("mp4")
+        ? "m4a"
+        : recordedBlob.type.includes("ogg")
+        ? "ogg"
+        : "webm";
 
-  const file = new File([recordedBlob], `recording.${extension}`, {
-    type: recordedBlob.type || "audio/webm"
-  });
+    const file = new File([recordedBlob], `recording.${extension}`, {
+      type: recordedBlob.type || "audio/webm"
+    });
 
-  const stableUserAudioUrl = URL.createObjectURL(recordedBlob);
-  await sendAudioWithReplyVoice(file, stableUserAudioUrl);
-}
+    const stableUserAudioUrl = URL.createObjectURL(recordedBlob);
+    await sendAudioWithReplyVoice(file, stableUserAudioUrl);
+  }
 
   return (
     <div className="app-shell">
@@ -351,10 +590,48 @@ function App() {
       </section>
 
       <section className="card">
-        <h2>2. Session</h2>
-        <button onClick={startSession} disabled={loading}>
-          Start session
-        </button>
+        <h2>2. User auth</h2>
+
+        <div className="field">
+          <label>Username</label>
+          <input value={username} onChange={(e) => setUsername(e.target.value)} />
+        </div>
+
+        <div className="field">
+          <label>Password</label>
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        </div>
+
+        <div className="field">
+          <label>Display name</label>
+          <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+        </div>
+
+        <div className="button-row">
+          <button onClick={registerUser} disabled={loading}>Register</button>
+          <button onClick={loginUser} disabled={loading}>Login</button>
+          <button onClick={loadMe} disabled={!token || loading}>Load me</button>
+          <button onClick={logout} disabled={!token || loading}>Logout</button>
+        </div>
+
+        {currentUser && (
+          <pre>{JSON.stringify({ tokenPresent: !!token, user: currentUser }, null, 2)}</pre>
+        )}
+      </section>
+
+      <section className="card">
+        <h2>3. Sessions</h2>
+        <div className="button-row">
+          <button onClick={startSession} disabled={!isLoggedIn || loading}>
+            Start session
+          </button>
+          <button onClick={loadMySessions} disabled={!isLoggedIn || loading}>
+            Load my sessions
+          </button>
+          <button onClick={() => loadHistory()} disabled={!isLoggedIn || !sessionId || loading}>
+            Load current session history
+          </button>
+        </div>
 
         <div className="field">
           <label>Session ID</label>
@@ -365,17 +642,34 @@ function App() {
           <label>Created At</label>
           <input value={createdAt} readOnly />
         </div>
+
+        {mySessions.length > 0 && (
+          <div className="field">
+            <label>My sessions</label>
+            <div className="session-list">
+              {mySessions.map((session) => (
+                <button
+                  key={session.sessionId}
+                  className="session-item"
+                  onClick={() => loadHistory(session.sessionId)}
+                  disabled={loading}
+                >
+                  <div><strong>{session.sessionId}</strong></div>
+                  <div>Created: {session.createdAt}</div>
+                  <div>Messages: {session.messageCount}</div>
+                  <div>Last activity: {session.lastMessageAt || "No messages yet"}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="card">
-        <h2>3. Text message</h2>
+        <h2>4. Text message</h2>
         <div className="field">
           <label>Message</label>
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            rows={4}
-          />
+          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4} />
         </div>
 
         <button onClick={sendText} disabled={!canSendText || loading || isRecording}>
@@ -384,7 +678,7 @@ function App() {
       </section>
 
       <section className="card">
-        <h2>4. Upload audio file</h2>
+        <h2>5. Upload audio file</h2>
         <input
           type="file"
           accept=".wav,.mp3,.m4a,.webm,.ogg"
@@ -392,44 +686,29 @@ function App() {
         />
 
         <div className="button-row">
-          <button
-            onClick={sendSelectedAudioTextOnly}
-            disabled={!selectedAudioAvailable || loading || isRecording}
-          >
+          <button onClick={sendSelectedAudioTextOnly} disabled={!selectedAudioAvailable || loading || isRecording}>
             Send file (text reply)
           </button>
 
-          <button
-            onClick={sendSelectedAudioWithVoice}
-            disabled={!selectedAudioAvailable || loading || isRecording}
-          >
+          <button onClick={sendSelectedAudioWithVoice} disabled={!selectedAudioAvailable || loading || isRecording}>
             Send file (voice reply)
           </button>
         </div>
       </section>
 
       <section className="card">
-        <h2>5. Live microphone recording</h2>
+        <h2>6. Live microphone recording</h2>
 
         <div className="button-row">
-          <button
-            onClick={startRecording}
-            disabled={!sessionId || loading || isRecording}
-          >
+          <button onClick={startRecording} disabled={!isLoggedIn || !sessionId || loading || isRecording}>
             Start recording
           </button>
 
-          <button
-            onClick={stopRecording}
-            disabled={!isRecording}
-          >
+          <button onClick={stopRecording} disabled={!isRecording}>
             Stop recording
           </button>
 
-          <button
-            onClick={sendRecordedAudioWithVoice}
-            disabled={!recordedAudioAvailable || loading || isRecording}
-          >
+          <button onClick={sendRecordedAudioWithVoice} disabled={!recordedAudioAvailable || loading || isRecording}>
             Send recording (voice reply)
           </button>
         </div>
@@ -452,7 +731,7 @@ function App() {
       </section>
 
       <section className="card">
-        <h2>6. Result</h2>
+        <h2>7. Result</h2>
 
         {loading && <p>Working...</p>}
         {error && <p className="error">{error}</p>}
@@ -463,6 +742,16 @@ function App() {
             <label>Reply audio</label>
             <audio ref={replyAudioRef} controls src={replyAudioUrl} />
           </div>
+        )}
+      </section>
+
+      <section className="card">
+        <h2>8. Loaded session history</h2>
+
+        {sessionHistory ? (
+          <pre>{JSON.stringify(sessionHistory, null, 2)}</pre>
+        ) : (
+          <p>No history loaded yet.</p>
         )}
       </section>
     </div>

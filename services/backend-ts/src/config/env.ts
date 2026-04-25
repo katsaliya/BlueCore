@@ -16,5 +16,8 @@ export const env = {
   LLM_HEALTH_PATH: process.env.LLM_HEALTH_PATH || "/api/tags",
 
   VOICE_BRIDGE_BASE_URL:
-    process.env.VOICE_BRIDGE_BASE_URL || "http://127.0.0.1:50055"
+    process.env.VOICE_BRIDGE_BASE_URL || "http://127.0.0.1:50055",
+
+  JWT_SECRET: process.env.JWT_SECRET || "greenwatch-demo-secret",
+  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "7d"
 };

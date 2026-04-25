@@ -2,6 +2,13 @@ $root = "C:\Users\arman\Desktop\GreenWatch"
 
 Write-Host "Starting GreenWatch..." -ForegroundColor Cyan
 
+$sqlitePath = "$root\services\backend-ts\data\greenwatch.db"
+if (Test-Path $sqlitePath) {
+    Write-Host "SQLite DB found: $sqlitePath" -ForegroundColor Green
+} else {
+    Write-Host "SQLite DB will be created by backend on startup: $sqlitePath" -ForegroundColor Yellow
+}
+
 Write-Host "Starting Docker VectorAI DB..." -ForegroundColor Yellow
 docker start greenwatch-vectorai-latest | Out-Null
 
