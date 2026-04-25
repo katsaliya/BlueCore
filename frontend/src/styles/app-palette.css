@@ -1,0 +1,236 @@
+/**
+ * Maritime app surface & brand tokens (light / dark).
+ * Shadcn-style UI variables live in theme.css; change accents and shells here.
+ */
+:root {
+  /* Viewport letterbox behind the phone shell */
+  --app-viewport-bg: #050810;
+
+  /* Main shell (Root + full-bleed screens) */
+  --app-canvas: #e1ecff;
+  --app-nav: #e1ecff;
+  --app-nav-border: rgba(37, 70, 127, 0.06);
+
+  /* Brand: interactive / nav-active (not the same as shadcn --primary) */
+  --app-accent: #25467f;
+  --app-highlight: #4fc3f7;
+
+  --app-fg: #1a3260;
+  --app-fg-muted: rgba(37, 70, 127, 0.4);
+  --app-fg-subtle: rgba(37, 70, 127, 0.5);
+  --app-fg-faint: rgba(37, 70, 127, 0.3);
+
+  /* Profile / deeper content tint */
+  --app-screen-tint: #e1ecff;
+
+  /* Cards & chrome */
+  --app-card-bg: rgba(255, 255, 255, 0.65);
+  --app-card-border: rgba(37, 70, 127, 0.12);
+  --app-card-gradient: linear-gradient(
+    to bottom right,
+    rgba(225, 236, 255, 0.4),
+    rgba(193, 216, 255, 0.4)
+  );
+  --app-card-gradient-strong: linear-gradient(
+    to bottom right,
+    rgba(225, 236, 255, 0.9),
+    rgba(193, 216, 255, 0.7)
+  );
+
+  --app-accent-soft: rgba(37, 70, 127, 0.15);
+  --app-accent-softer: rgba(37, 70, 127, 0.1);
+  --app-surface-hover: rgba(37, 70, 127, 0.05);
+  --app-surface-ghost: rgba(37, 70, 127, 0.03);
+  --app-icon-button-bg: rgba(37, 70, 127, 0.08);
+  --app-divider: rgba(37, 70, 127, 0.1);
+  --app-toggle-track-off: rgba(37, 70, 127, 0.1);
+  --app-progress-track: rgba(37, 70, 127, 0.1);
+  --app-upload-zone-bg: rgba(37, 70, 127, 0.02);
+  --app-overlay-scrim: rgba(225, 236, 255, 0.95);
+
+  /* Alpha borders derived from accent (replaces `${primary}20` patterns) */
+  --app-accent-border-10: rgba(37, 70, 127, 0.1);
+  --app-accent-border-12: rgba(37, 70, 127, 0.12);
+  --app-accent-border-14: rgba(37, 70, 127, 0.14);
+  --app-accent-border-15: rgba(37, 70, 127, 0.15);
+  --app-accent-border-18: rgba(37, 70, 127, 0.18);
+  --app-accent-border-20: rgba(37, 70, 127, 0.2);
+  --app-accent-border-25: rgba(37, 70, 127, 0.25);
+  --app-accent-border-30: rgba(37, 70, 127, 0.3);
+  --app-accent-border-40: rgba(37, 70, 127, 0.4);
+  --app-accent-glow-06: rgba(37, 70, 127, 0.06);
+  --app-accent-glow-08: rgba(37, 70, 127, 0.08);
+  --app-accent-glow-10: rgba(37, 70, 127, 0.1);
+  --app-accent-glow-14: rgba(37, 70, 127, 0.14);
+  --app-accent-glow-15: rgba(37, 70, 127, 0.15);
+
+  /* Chat bubbles */
+  --app-chat-user-bg: var(--app-accent-softer);
+  --app-chat-assistant-bg: rgba(255, 255, 255, 0.6);
+  --app-chat-assistant-shadow: 0 2px 12px rgba(37, 70, 127, 0.06);
+
+  /* Voice home chrome */
+  --app-home-header-scrim: rgba(225, 236, 255, 0.75);
+  --app-home-panel-bg: rgba(225, 236, 255, 0.88);
+  --app-home-panel-shadow: 0 8px 40px rgba(37, 70, 127, 0.14);
+  --app-home-orb-vignette: radial-gradient(
+    circle at center,
+    rgba(225, 236, 255, 0.6) 0%,
+    transparent 50%
+  );
+  --app-orb-glow: radial-gradient(circle, rgba(37, 70, 127, 0.2) 30%, transparent 70%);
+  --app-row-highlight-bg: rgba(37, 70, 127, 0.05);
+  --app-input-pill-bg: rgba(255, 255, 255, 0.65);
+  --app-mic-bg-listening: rgba(79, 195, 247, 0.15);
+  --app-mic-border-listening: rgba(79, 195, 247, 0.4);
+  --app-mic-shadow-listening: 0 0 28px rgba(79, 195, 247, 0.2);
+  --app-mic-bg-idle: var(--app-accent-softer);
+  --app-mic-border-idle: var(--app-accent-border-30);
+  --app-mic-shadow-idle: 0 0 20px rgba(37, 70, 127, 0.08);
+
+  --app-home-aurora: radial-gradient(
+      ellipse 70% 55% at 50% 5%,
+      rgba(37, 70, 127, 0.09) 0%,
+      transparent 70%
+    ),
+    radial-gradient(ellipse 50% 40% at 15% 85%, rgba(99, 130, 200, 0.1) 0%, transparent 60%),
+    radial-gradient(ellipse 45% 35% at 85% 80%, rgba(147, 180, 240, 0.08) 0%, transparent 60%);
+
+  --app-home-blur-a: radial-gradient(circle, rgba(37, 70, 127, 0.06) 0%, transparent 70%);
+  --app-home-blur-b: radial-gradient(circle, rgba(99, 130, 210, 0.07) 0%, transparent 70%);
+
+  /* Shift / status dots (semantic, not tied to accent hue) */
+  --app-status-break: #4ade80;
+  --app-status-shift: #25467f;
+  --app-status-off: #a78bfa;
+
+  /* Small accents */
+  --app-warning: #fbbf24;
+  --app-warning-bg: rgba(245, 158, 11, 0.15);
+  --app-warning-fg: #d97706;
+  --app-danger: #ef4444;
+  --app-danger-bg: rgba(239, 68, 68, 0.1);
+  --app-schedule-duty-dot: var(--app-highlight);
+
+  /* VoiceHomeV2 — chat fades + bottom sheet */
+  --app-home-header-scrim-dense: rgba(225, 236, 255, 0.82);
+  --app-chat-scroll-fade-top: linear-gradient(to bottom, rgba(225, 236, 255, 0.5), transparent);
+  --app-chat-scroll-fade-bottom: linear-gradient(to top, rgba(225, 236, 255, 0.9), transparent);
+  --app-bottom-sheet-bg: rgba(220, 232, 255, 0.75);
+  --app-bottom-sheet-border: rgba(37, 70, 127, 0.08);
+
+  --app-connect-day-card: linear-gradient(
+    to bottom right,
+    rgba(225, 236, 255, 0.8),
+    rgba(193, 216, 255, 0.6)
+  );
+  --app-connect-hero-bg: linear-gradient(
+    to bottom right,
+    rgba(225, 236, 255, 0.9),
+    rgba(193, 216, 255, 0.7)
+  );
+  --app-connect-hero-overlay: linear-gradient(
+    to top,
+    rgba(225, 236, 255, 0.95) 0%,
+    rgba(225, 236, 255, 0.3) 50%,
+    transparent 100%
+  );
+  --app-thumb-tile-bg: rgba(225, 236, 255, 0.6);
+  --app-bookmark-fab-bg: rgba(255, 255, 255, 0.6);
+}
+
+.dark {
+  --app-viewport-bg: #050810;
+  --app-canvas: #030508;
+  --app-nav: #07090f;
+  --app-nav-border: rgba(255, 255, 255, 0.06);
+
+  --app-accent: #4fc3f7;
+  --app-highlight: #4fc3f7;
+
+  --app-fg: #ffffff;
+  --app-fg-muted: rgba(255, 255, 255, 0.4);
+  --app-fg-subtle: rgba(255, 255, 255, 0.5);
+  --app-fg-faint: rgba(255, 255, 255, 0.3);
+
+  --app-screen-tint: #0a0f1e;
+
+  --app-card-bg: rgba(255, 255, 255, 0.05);
+  --app-card-border: rgba(255, 255, 255, 0.06);
+  --app-card-gradient: linear-gradient(to bottom right, rgba(26, 58, 110, 0.4), rgba(13, 32, 64, 0.4));
+  --app-card-gradient-strong: linear-gradient(to bottom right, #1a3a6e, #0d2040);
+
+  --app-accent-soft: rgba(79, 195, 247, 0.15);
+  --app-accent-softer: rgba(79, 195, 247, 0.1);
+  --app-surface-hover: rgba(255, 255, 255, 0.05);
+  --app-surface-ghost: rgba(255, 255, 255, 0.03);
+  --app-icon-button-bg: rgba(255, 255, 255, 0.05);
+  --app-divider: rgba(255, 255, 255, 0.1);
+  --app-toggle-track-off: rgba(255, 255, 255, 0.1);
+  --app-progress-track: rgba(255, 255, 255, 0.08);
+  --app-upload-zone-bg: rgba(255, 255, 255, 0.02);
+  --app-overlay-scrim: rgba(10, 15, 30, 0.95);
+
+  --app-accent-border-10: rgba(79, 195, 247, 0.1);
+  --app-accent-border-12: rgba(79, 195, 247, 0.12);
+  --app-accent-border-14: rgba(79, 195, 247, 0.14);
+  --app-accent-border-15: rgba(79, 195, 247, 0.15);
+  --app-accent-border-18: rgba(79, 195, 247, 0.18);
+  --app-accent-border-20: rgba(79, 195, 247, 0.2);
+  --app-accent-border-25: rgba(79, 195, 247, 0.25);
+  --app-accent-border-30: rgba(79, 195, 247, 0.3);
+  --app-accent-border-40: rgba(79, 195, 247, 0.4);
+  --app-accent-glow-06: rgba(79, 195, 247, 0.06);
+  --app-accent-glow-08: rgba(79, 195, 247, 0.08);
+  --app-accent-glow-10: rgba(79, 195, 247, 0.1);
+  --app-accent-glow-14: rgba(79, 195, 247, 0.14);
+  --app-accent-glow-15: rgba(79, 195, 247, 0.15);
+
+  --app-chat-user-bg: var(--app-accent-softer);
+  --app-chat-assistant-bg: rgba(255, 255, 255, 0.05);
+  --app-chat-assistant-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+
+  --app-home-header-scrim: rgba(7, 9, 15, 0.75);
+  --app-home-panel-bg: rgba(7, 9, 15, 0.95);
+  --app-home-panel-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  --app-home-orb-vignette: radial-gradient(circle at center, rgba(7, 9, 15, 0.6) 0%, transparent 50%);
+  --app-orb-glow: radial-gradient(circle, rgba(79, 195, 247, 0.22) 30%, transparent 70%);
+  --app-row-highlight-bg: rgba(79, 195, 247, 0.05);
+  --app-input-pill-bg: rgba(255, 255, 255, 0.08);
+  --app-mic-bg-listening: rgba(79, 195, 247, 0.15);
+  --app-mic-border-listening: rgba(79, 195, 247, 0.4);
+  --app-mic-shadow-listening: 0 0 28px rgba(79, 195, 247, 0.2);
+  --app-mic-bg-idle: var(--app-accent-softer);
+  --app-mic-border-idle: var(--app-accent-border-30);
+  --app-mic-shadow-idle: 0 0 20px rgba(0, 0, 0, 0.35);
+
+  --app-home-aurora: radial-gradient(
+      ellipse 70% 55% at 50% 5%,
+      rgba(79, 195, 247, 0.07) 0%,
+      transparent 70%
+    ),
+    radial-gradient(ellipse 50% 40% at 15% 85%, rgba(26, 58, 110, 0.35) 0%, transparent 60%),
+    radial-gradient(ellipse 45% 35% at 85% 80%, rgba(13, 32, 64, 0.45) 0%, transparent 60%);
+
+  --app-home-blur-a: radial-gradient(circle, rgba(79, 195, 247, 0.08) 0%, transparent 70%);
+  --app-home-blur-b: radial-gradient(circle, rgba(26, 58, 110, 0.25) 0%, transparent 70%);
+
+  --app-status-shift: #4fc3f7;
+
+  --app-home-header-scrim-dense: rgba(7, 9, 15, 0.82);
+  --app-chat-scroll-fade-top: linear-gradient(to bottom, rgba(7, 9, 15, 0.65), transparent);
+  --app-chat-scroll-fade-bottom: linear-gradient(to top, rgba(7, 9, 15, 0.88), transparent);
+  --app-bottom-sheet-bg: rgba(7, 9, 15, 0.78);
+  --app-bottom-sheet-border: rgba(255, 255, 255, 0.08);
+
+  --app-connect-day-card: linear-gradient(to bottom right, #1a3a6e, #0d2040);
+  --app-connect-hero-bg: linear-gradient(to bottom right, #1a3a6e, #0a1628);
+  --app-connect-hero-overlay: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.8) 0%,
+    rgba(0, 0, 0, 0.2) 50%,
+    transparent 100%
+  );
+  --app-thumb-tile-bg: rgba(26, 58, 110, 0.6);
+  --app-bookmark-fab-bg: rgba(0, 0, 0, 0.3);
+}
