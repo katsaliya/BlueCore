@@ -4,6 +4,16 @@ import { useNavigate } from "react-router";
 import { Mic, ChevronRight, FileText, Play, Grid, Home, Compass, Archive, User, Sun, Moon } from "lucide-react";
 import { currentUser } from "../data/mockData";
 import { useTheme } from "../contexts/ThemeContext";
+import {
+  ApiError,
+  bootstrapDemoSession,
+  getBackendDependencies,
+  resetStoredSession,
+  sendSessionAudioMessage,
+  sendSessionMessage,
+  startSession,
+} from "../api/bluecoreApi";
+import type { BackendSession } from "../api/bluecoreApi";
 
 // ─── Context detection ────────────────────────────────────────────────────────
 function getShiftContext(): {
@@ -60,6 +70,31 @@ const offShiftReplies = [
 ];
 
 type Message = { role: "assistant" | "user"; text: string };
+type BackendStatus = "connecting" | "ready" | "degraded" | "offline";
+
+function getApiErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Unknown backend error";
+}
+
+function getRecordingExtension(mimeType: string) {
+  if (mimeType.includes("mp4")) return "m4a";
+  if (mimeType.includes("ogg")) return "ogg";
+  if (mimeType.includes("wav")) return "wav";
+  return "webm";
+}
+
+function getPreferredRecordingMimeType() {
+  if (typeof MediaRecorder === "undefined") return "";
+
+  const candidates = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/mp4",
+    "audio/ogg;codecs=opus",
+  ];
+
+  return candidates.find((type) => MediaRecorder.isTypeSupported(type)) ?? "";
+}
 
 // ─── Acoustic amplitude simulator ────────────────────────────────────────────
 function useAcousticAmplitude(state: "idle" | "listening" | "speaking") {
@@ -263,8 +298,15 @@ export function VoiceHomeV2() {
   const [showInput, setShowInput] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [showNav, setShowNav] = useState(false);
+  const [backendStatus, setBackendStatus] = useState<BackendStatus>("connecting");
+  const [backendIssue, setBackendIssue] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const listenTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const backendSessionRef = useRef<BackendSession | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
 
   const amp = useAcousticAmplitude(orbState);
   const ampRef = useRef<number>(0);
@@ -272,11 +314,94 @@ export function VoiceHomeV2() {
     return amp.on("change", (v) => { ampRef.current = v; });
   }, [amp]);
 
-  const getReplies = useCallback(() => {
-    return ctx.mode === "break" ? breakReplies
-      : ctx.mode === "on-shift" ? shiftReplies
-      : offShiftReplies;
+  const sampleVoiceText = useCallback(() => {
+    const samples =
+      ctx.mode === "break"
+        ? [
+            "Yeah it was a busy one honestly, cargo inspection overran.",
+            "Looking to grab lunch with someone if anyone's free.",
+            "Could use some company actually.",
+          ]
+        : ctx.mode === "on-shift"
+          ? [
+              "Bit hectic up on the bridge today.",
+              "Everything is fine, just checking in.",
+              "I'm a bit tired but managing.",
+            ]
+          : [
+              "Watch is over and I am ready to wind down.",
+              "It was a long day but I am doing okay.",
+              "I could use a quiet reset before sleep.",
+            ];
+
+    return samples[Math.floor(Math.random() * samples.length)];
   }, [ctx.mode]);
+
+  const stopMediaStream = useCallback(() => {
+    mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+    mediaStreamRef.current = null;
+  }, []);
+
+  const markBackendError = useCallback((error: unknown) => {
+    const message = getApiErrorMessage(error);
+    setBackendIssue(message);
+    setBackendStatus(error instanceof ApiError && error.status >= 500 ? "degraded" : "offline");
+    return message;
+  }, []);
+
+  const ensureBackendSession = useCallback(async () => {
+    if (backendSessionRef.current) {
+      return backendSessionRef.current;
+    }
+
+    setBackendStatus("connecting");
+    const session = await bootstrapDemoSession();
+    backendSessionRef.current = session;
+    setBackendStatus("ready");
+    return session;
+  }, []);
+
+  const refreshBackendSession = useCallback(async (session: BackendSession) => {
+    await resetStoredSession();
+    const sessionId = await startSession(session.token);
+    const nextSession = { ...session, sessionId };
+    backendSessionRef.current = nextSession;
+    return nextSession;
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function connectBackend() {
+      try {
+        const [session, dependencies] = await Promise.all([
+          bootstrapDemoSession(),
+          getBackendDependencies().catch(() => null),
+        ]);
+
+        if (!active) return;
+
+        backendSessionRef.current = session;
+        setBackendStatus(dependencies && !dependencies.ok ? "degraded" : "ready");
+        setBackendIssue(
+          dependencies && !dependencies.ok
+            ? "Backend is reachable, but one or more assistant dependencies are offline."
+            : ""
+        );
+      } catch (error) {
+        if (!active) return;
+        markBackendError(error);
+      }
+    }
+
+    void connectBackend();
+
+    return () => {
+      active = false;
+      if (listenTimer.current) clearTimeout(listenTimer.current);
+      stopMediaStream();
+    };
+  }, [markBackendError, stopMediaStream]);
 
   useEffect(() => {
     const t1 = setTimeout(() => {
@@ -297,63 +422,186 @@ export function VoiceHomeV2() {
     }
   }, [messages]);
 
-  const sendUserMessage = useCallback((text: string) => {
+  const sendUserMessage = useCallback(async (text: string) => {
     if (!text.trim()) return;
-    setMessages((prev) => [...prev, { role: "user", text: text.trim() }]);
+    if (isSending) return;
+
+    const cleanText = text.trim();
+    setMessages((prev) => [...prev, { role: "user", text: cleanText }]);
     setInputText("");
     setOrbState("speaking");
-    const replies = getReplies();
-    const reply = replies[Math.floor(Math.random() * replies.length)];
-    setTimeout(() => {
-      setMessages((prev) => [...prev, { role: "assistant", text: reply }]);
-      setTimeout(() => setOrbState("idle"), 2200);
-    }, 1500);
-  }, [getReplies]);
+    setIsSending(true);
+    setBackendIssue("");
 
-  const handleMicToggle = useCallback(() => {
-    if (isListening) {
+    try {
+      let session = await ensureBackendSession();
+
+      let response;
+      try {
+        response = await sendSessionMessage(session.token, session.sessionId, cleanText);
+      } catch (error) {
+        if (!(error instanceof ApiError) || error.status !== 404) {
+          throw error;
+        }
+
+        session = await refreshBackendSession(session);
+        response = await sendSessionMessage(session.token, session.sessionId, cleanText);
+      }
+
+      setBackendStatus("ready");
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", text: response.reply || "I heard you." },
+      ]);
+    } catch (error) {
+      const message = markBackendError(error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          text: `I couldn't get a backend reply yet. ${message}`,
+        },
+      ]);
+    } finally {
+      setIsSending(false);
+      setTimeout(() => setOrbState("idle"), 900);
+    }
+  }, [ensureBackendSession, isSending, markBackendError, refreshBackendSession]);
+
+  const sendRecordedAudio = useCallback(async (blob: Blob) => {
+    if (isSending) return;
+
+    setOrbState("speaking");
+    setIsSending(true);
+    setBackendIssue("");
+
+    try {
+      let session = await ensureBackendSession();
+      const mimeType = blob.type || "audio/webm";
+      const file = new File(
+        [blob],
+        `bluecore-recording.${getRecordingExtension(mimeType)}`,
+        { type: mimeType }
+      );
+
+      let response;
+      try {
+        response = await sendSessionAudioMessage(session.token, session.sessionId, file);
+      } catch (error) {
+        if (!(error instanceof ApiError) || error.status !== 404) {
+          throw error;
+        }
+
+        session = await refreshBackendSession(session);
+        response = await sendSessionAudioMessage(session.token, session.sessionId, file);
+      }
+
+      setBackendStatus("ready");
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", text: response.transcript || "Voice message" },
+        { role: "assistant", text: response.reply || "I heard you." },
+      ]);
+    } catch (error) {
+      const message = markBackendError(error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          text: `I couldn't process that recording yet. ${message}`,
+        },
+      ]);
+    } finally {
+      setIsSending(false);
       setIsListening(false);
-      setOrbState("speaking");
-      if (listenTimer.current) clearTimeout(listenTimer.current);
-      const sampleResponses = [
-        "Yeah it was a busy one honestly, cargo inspection overran.",
-        "Everything's fine, just checking in.",
-        "I'm a bit tired but managing.",
-        "Looking to grab lunch with someone if anyone's free.",
-        "Could use some company actually.",
-      ];
-      const userText = sampleResponses[Math.floor(Math.random() * sampleResponses.length)];
-      setTimeout(() => {
-        setMessages((prev) => [...prev, { role: "user", text: userText }]);
-        const replies = getReplies();
-        const reply = replies[Math.floor(Math.random() * replies.length)];
-        setTimeout(() => {
-          setMessages((prev) => [...prev, { role: "assistant", text: reply }]);
-          setTimeout(() => setOrbState("idle"), 2200);
-        }, 1300);
-      }, 400);
-    } else {
+      setTimeout(() => setOrbState("idle"), 900);
+    }
+  }, [ensureBackendSession, isSending, markBackendError, refreshBackendSession]);
+
+  const stopRecording = useCallback(() => {
+    if (listenTimer.current) {
+      clearTimeout(listenTimer.current);
+      listenTimer.current = null;
+    }
+
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== "inactive") {
+      recorder.stop();
+      return true;
+    }
+
+    return false;
+  }, []);
+
+  const handleMicToggle = useCallback(async () => {
+    if (isSending) return;
+
+    if (isListening) {
+      if (!stopRecording()) {
+        setIsListening(false);
+        void sendUserMessage(sampleVoiceText());
+      }
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      void sendUserMessage(sampleVoiceText());
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = getPreferredRecordingMimeType();
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+
+      mediaStreamRef.current = stream;
+      mediaRecorderRef.current = recorder;
+      recordedChunksRef.current = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const finalMimeType = recorder.mimeType || "audio/webm";
+        const blob = new Blob(recordedChunksRef.current, { type: finalMimeType });
+
+        mediaRecorderRef.current = null;
+        recordedChunksRef.current = [];
+        stopMediaStream();
+        setIsListening(false);
+
+        if (blob.size > 0) {
+          void sendRecordedAudio(blob);
+        } else {
+          void sendUserMessage(sampleVoiceText());
+        }
+      };
+
+      recorder.start();
       setIsListening(true);
       setOrbState("listening");
       listenTimer.current = setTimeout(() => {
-        setIsListening(false);
-        setOrbState("speaking");
-        const sampleResponses = [
-          "Bit hectic up on the bridge today.",
-          "I'm alright, just checking in with you.",
-          "Looking for someone to eat with.",
-        ];
-        const userText = sampleResponses[Math.floor(Math.random() * sampleResponses.length)];
-        setMessages((prev) => [...prev, { role: "user", text: userText }]);
-        const replies = getReplies();
-        const reply = replies[Math.floor(Math.random() * replies.length)];
-        setTimeout(() => {
-          setMessages((prev) => [...prev, { role: "assistant", text: reply }]);
-          setTimeout(() => setOrbState("idle"), 2200);
-        }, 1300);
+        stopRecording();
       }, 4500);
+    } catch (error) {
+      setIsListening(false);
+      setBackendIssue(getApiErrorMessage(error));
+      void sendUserMessage(sampleVoiceText());
     }
-  }, [isListening, getReplies]);
+  }, [
+    isListening,
+    isSending,
+    sampleVoiceText,
+    sendRecordedAudio,
+    sendUserMessage,
+    stopMediaStream,
+    stopRecording,
+  ]);
 
   const modeLabel =
     ctx.mode === "break" ? "Break Check-in" :
@@ -367,9 +615,18 @@ export function VoiceHomeV2() {
   const modeLabelColor = modeDotColor;
 
   const stateHint =
+    backendStatus === "connecting" ? "Connecting…" :
+    backendStatus === "offline" ? "Backend offline" :
+    backendStatus === "degraded" ? "Service degraded" :
+    isSending ? "Sending…" :
     orbState === "listening" ? "Listening…" :
     orbState === "speaking" ? "BlueCore" : "Tap to speak";
-  const stateHintColor = orbState === "listening" ? "var(--app-highlight)" : "var(--app-fg-muted)";
+  const stateHintColor =
+    backendStatus === "offline" || backendStatus === "degraded"
+      ? "var(--app-warning-fg)"
+      : orbState === "listening"
+        ? "var(--app-highlight)"
+        : "var(--app-fg-muted)";
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-app-canvas">
@@ -611,6 +868,7 @@ export function VoiceHomeV2() {
               }
             >
               <span
+                title={backendIssue || undefined}
                 className="text-[11px] tracking-widest uppercase transition-colors duration-300"
                 style={{ color: stateHintColor }}
               >
@@ -663,9 +921,10 @@ export function VoiceHomeV2() {
                     }}
                     placeholder="Type a message…"
                     value={inputText}
+                    disabled={isSending}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") { sendUserMessage(inputText); setShowInput(false); }
+                      if (e.key === "Enter" && !isSending) { sendUserMessage(inputText); setShowInput(false); }
                       if (e.key === "Escape") { setShowInput(false); setInputText(""); }
                     }}
                   />
@@ -676,7 +935,9 @@ export function VoiceHomeV2() {
             {/* Mic button */}
             <motion.button
               whileTap={{ scale: 0.88 }}
+              disabled={isSending}
               onClick={() => {
+                if (isSending) return;
                 if (showInput && inputText) {
                   sendUserMessage(inputText);
                   setShowInput(false);

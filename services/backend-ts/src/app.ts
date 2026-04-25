@@ -12,8 +12,22 @@ import { runMigrations } from "./db/migrate";
 runMigrations();
 
 const app = express();
+const allowedOrigins = env.CORS_ORIGIN.split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
-app.use(cors());
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`CORS origin not allowed: ${origin}`));
+    }
+  })
+);
 app.use(express.json());
 
 app.use(healthRouter);

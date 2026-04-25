@@ -73,7 +73,7 @@ type AuthResponse = {
   message?: string;
 };
 
-const API_BASE = "http://127.0.0.1:8080";
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8080";
 
 function App() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
