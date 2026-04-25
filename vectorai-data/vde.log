@@ -1,0 +1,232 @@
+[2026-04-24 01:52:21.941] [vde] [info] Data store configure CACHE_SIZE_MB succeeded
+[2026-04-24 01:52:21.944] [vde] [info] Data store configure INI succeeded (/data/datastore.ini)
+[2026-04-24 01:52:22.556] [vde] [info] Data store initialization succeeded
+[2026-04-24 01:52:22.556] [vde] [info] VDE Engine initializing with work_dir: /data
+[2026-04-24 01:52:22.560] [vde] [info] [FlushManager] Started (check_interval=30s, min_threshold=100, max_interval=3600s)
+[2026-04-24 01:52:22.560] [vde] [info] VectorIndexRegistry and VectorRepositoryRegistry created
+[2026-04-24 01:54:12.434] [vde] [info] [VDEEngine::CreateCollection(unified)] Creating 'session-1776995630414-l1pjq8' with 1 vector space(s)
+[2026-04-24 01:54:12.443] [vde] [info] [VDECollection::Init(unified)] name=session-1776995630414-l1pjq8, num_vectors=1
+[2026-04-24 01:54:12.443] [vde] [info] [VDECollection::SaveMetadata] Saving metadata for collection 'session-1776995630414-l1pjq8' to: /data/session-1776995630414-l1pjq8/metadata.json
+[2026-04-24 01:54:12.449] [vde] [info] [VDECollection::SaveMetadata] Metadata saved to /data/session-1776995630414-l1pjq8/metadata.json (storage_type=StorageType::BTRIEVE_FILE, index_driver_type=IndexDriverType::FAISS)
+[2026-04-24 01:54:12.512] [vde] [info] [PersistentIdMap::Open] File does not exist, creating: /data/session-1776995630414-l1pjq8/segment_0/id_map.btr
+[2026-04-24 01:54:12.573] [vde] [info] [PersistentIdMap::CreateFileStore] id_map file created: /data/session-1776995630414-l1pjq8/segment_0/id_map.btr
+[2026-04-24 01:54:12.573] [vde] [info] [PersistentIdMap::Open] Opened with 0 mappings, next_internal_id=0
+[2026-04-24 01:54:12.795] [vde] [info] [DenseBtrieveStore::Open] File does not exist, creating: /data/session-1776995630414-l1pjq8/segment_0/vectors/_default/vectors.btr
+[2026-04-24 01:54:12.853] [vde] [info] [DenseBtrieveStore::CreateFile] Created file: /data/session-1776995630414-l1pjq8/segment_0/vectors/_default/vectors.btr (dim=768, record_len=3088)
+[2026-04-24 01:54:12.853] [vde] [info] [DenseBtrieveStore::Open] Opened (dim=768, record_len=3088)
+[2026-04-24 01:54:12.889] [vde] [info] [SegmentStateStore::Open] File does not exist, creating: /data/session-1776995630414-l1pjq8/segment_0/segment_state.btr
+[2026-04-24 01:54:12.929] [vde] [info] [SegmentStateStore::CreateFile] segment_state file created: /data/session-1776995630414-l1pjq8/segment_0/segment_state.btr
+[2026-04-24 01:54:12.929] [vde] [info] [SegmentStateStore::Open] max_allocated_internal_id=0, schema_version=1, freshly_created=true
+[2026-04-24 01:54:12.931] [vde] [info] [VDECollection::Init(unified)] LocalShard initialized with 1 vector space(s)
+[2026-04-24 01:54:12.931] [vde] [info] [FlushManager] Registered collection 'session-1776995630414-l1pjq8'
+[2026-04-24 01:54:12.931] [vde] [info] [VDEEngine::CreateCollection(unified)] Collection 'session-1776995630414-l1pjq8' created successfully
+[2026-04-24 01:54:17.901] [vde] [info] [FaissVectorIndexDriver::Search] === FIRST SEARCH - HNSW Parameters ===
+[2026-04-24 01:54:17.901] [vde] [info] [FaissVectorIndexDriver::Search] Index ntotal: 1
+[2026-04-24 01:54:17.901] [vde] [info] [FaissVectorIndexDriver::Search] Storage ntotal: 1
+[2026-04-24 01:54:17.901] [vde] [info] [FaissVectorIndexDriver::Search] Query top_k: 3
+[2026-04-24 01:54:17.901] [vde] [info] [FaissVectorIndexDriver::Search] Configured efSearch: 64
+[2026-04-24 01:54:17.901] [vde] [info] [FaissVectorIndexDriver::Search] Request hnsw_ef override: 0
+[2026-04-24 01:54:17.901] [vde] [info] [FaissVectorIndexDriver::Search] Effective efSearch for this call: 64
+[2026-04-24 01:54:17.901] [vde] [info] [FaissVectorIndexDriver::Search] efConstruction: 200
+[2026-04-24 01:54:17.901] [vde] [info] [FaissVectorIndexDriver::Search] max_level: 0
+[2026-04-24 01:54:17.901] [vde] [info] [FaissVectorIndexDriver::Search] levels.size(): 1
+[2026-04-24 01:54:17.901] [vde] [info] [FaissVectorIndexDriver::Search] entry_point: 0
+[2026-04-24 01:54:17.901] [vde] [info] [FaissVectorIndexDriver::Search] M (neighbors at level 1): 32
+[2026-04-24 01:54:17.901] [vde] [info] [FaissVectorIndexDriver::Search] Storage exists: true, own_fields: true
+[2026-04-24 01:54:17.901] [vde] [info] [FaissVectorIndexDriver::Search] ============================================
+[2026-04-24 01:54:22.561] [vde] [info] [FlushManager] Timer started for 'session-1776995630414-l1pjq8' (interval=3600s)
+[2026-04-24 02:27:50.709] [vde] [info] [VDEEngine::CreateCollection(unified)] Creating 'session-1776997593127-j0mvtf' with 1 vector space(s)
+[2026-04-24 02:27:50.713] [vde] [info] [VDECollection::Init(unified)] name=session-1776997593127-j0mvtf, num_vectors=1
+[2026-04-24 02:27:50.714] [vde] [info] [VDECollection::SaveMetadata] Saving metadata for collection 'session-1776997593127-j0mvtf' to: /data/session-1776997593127-j0mvtf/metadata.json
+[2026-04-24 02:27:50.720] [vde] [info] [VDECollection::SaveMetadata] Metadata saved to /data/session-1776997593127-j0mvtf/metadata.json (storage_type=StorageType::BTRIEVE_FILE, index_driver_type=IndexDriverType::FAISS)
+[2026-04-24 02:27:50.779] [vde] [info] [PersistentIdMap::Open] File does not exist, creating: /data/session-1776997593127-j0mvtf/segment_0/id_map.btr
+[2026-04-24 02:27:50.878] [vde] [info] [PersistentIdMap::CreateFileStore] id_map file created: /data/session-1776997593127-j0mvtf/segment_0/id_map.btr
+[2026-04-24 02:27:50.878] [vde] [info] [PersistentIdMap::Open] Opened with 0 mappings, next_internal_id=0
+[2026-04-24 02:27:50.993] [vde] [info] [DenseBtrieveStore::Open] File does not exist, creating: /data/session-1776997593127-j0mvtf/segment_0/vectors/_default/vectors.btr
+[2026-04-24 02:27:51.046] [vde] [info] [DenseBtrieveStore::CreateFile] Created file: /data/session-1776997593127-j0mvtf/segment_0/vectors/_default/vectors.btr (dim=768, record_len=3088)
+[2026-04-24 02:27:51.046] [vde] [info] [DenseBtrieveStore::Open] Opened (dim=768, record_len=3088)
+[2026-04-24 02:27:51.078] [vde] [info] [SegmentStateStore::Open] File does not exist, creating: /data/session-1776997593127-j0mvtf/segment_0/segment_state.btr
+[2026-04-24 02:27:51.118] [vde] [info] [SegmentStateStore::CreateFile] segment_state file created: /data/session-1776997593127-j0mvtf/segment_0/segment_state.btr
+[2026-04-24 02:27:51.119] [vde] [info] [SegmentStateStore::Open] max_allocated_internal_id=0, schema_version=1, freshly_created=true
+[2026-04-24 02:27:51.119] [vde] [info] [VDECollection::Init(unified)] LocalShard initialized with 1 vector space(s)
+[2026-04-24 02:27:51.119] [vde] [info] [FlushManager] Registered collection 'session-1776997593127-j0mvtf'
+[2026-04-24 02:27:51.119] [vde] [info] [VDEEngine::CreateCollection(unified)] Collection 'session-1776997593127-j0mvtf' created successfully
+[2026-04-24 02:27:53.890] [vde] [info] [FaissVectorIndexDriver::Search] === FIRST SEARCH - HNSW Parameters ===
+[2026-04-24 02:27:53.890] [vde] [info] [FaissVectorIndexDriver::Search] Index ntotal: 1
+[2026-04-24 02:27:53.890] [vde] [info] [FaissVectorIndexDriver::Search] Storage ntotal: 1
+[2026-04-24 02:27:53.890] [vde] [info] [FaissVectorIndexDriver::Search] Query top_k: 3
+[2026-04-24 02:27:53.890] [vde] [info] [FaissVectorIndexDriver::Search] Configured efSearch: 64
+[2026-04-24 02:27:53.890] [vde] [info] [FaissVectorIndexDriver::Search] Request hnsw_ef override: 0
+[2026-04-24 02:27:53.890] [vde] [info] [FaissVectorIndexDriver::Search] Effective efSearch for this call: 64
+[2026-04-24 02:27:53.890] [vde] [info] [FaissVectorIndexDriver::Search] efConstruction: 200
+[2026-04-24 02:27:53.890] [vde] [info] [FaissVectorIndexDriver::Search] max_level: 0
+[2026-04-24 02:27:53.890] [vde] [info] [FaissVectorIndexDriver::Search] levels.size(): 1
+[2026-04-24 02:27:53.890] [vde] [info] [FaissVectorIndexDriver::Search] entry_point: 0
+[2026-04-24 02:27:53.890] [vde] [info] [FaissVectorIndexDriver::Search] M (neighbors at level 1): 32
+[2026-04-24 02:27:53.890] [vde] [info] [FaissVectorIndexDriver::Search] Storage exists: true, own_fields: true
+[2026-04-24 02:27:53.891] [vde] [info] [FaissVectorIndexDriver::Search] ============================================
+[2026-04-24 02:28:22.576] [vde] [info] [FlushManager] Timer started for 'session-1776997593127-j0mvtf' (interval=3600s)
+[2026-04-24 02:31:38.381] [vde] [info] [VDEEngine::CreateCollection(unified)] Creating 'session-1776997894180-utozfy' with 1 vector space(s)
+[2026-04-24 02:31:38.385] [vde] [info] [VDECollection::Init(unified)] name=session-1776997894180-utozfy, num_vectors=1
+[2026-04-24 02:31:38.385] [vde] [info] [VDECollection::SaveMetadata] Saving metadata for collection 'session-1776997894180-utozfy' to: /data/session-1776997894180-utozfy/metadata.json
+[2026-04-24 02:31:38.391] [vde] [info] [VDECollection::SaveMetadata] Metadata saved to /data/session-1776997894180-utozfy/metadata.json (storage_type=StorageType::BTRIEVE_FILE, index_driver_type=IndexDriverType::FAISS)
+[2026-04-24 02:31:38.460] [vde] [info] [PersistentIdMap::Open] File does not exist, creating: /data/session-1776997894180-utozfy/segment_0/id_map.btr
+[2026-04-24 02:31:38.519] [vde] [info] [PersistentIdMap::CreateFileStore] id_map file created: /data/session-1776997894180-utozfy/segment_0/id_map.btr
+[2026-04-24 02:31:38.519] [vde] [info] [PersistentIdMap::Open] Opened with 0 mappings, next_internal_id=0
+[2026-04-24 02:31:38.653] [vde] [info] [DenseBtrieveStore::Open] File does not exist, creating: /data/session-1776997894180-utozfy/segment_0/vectors/_default/vectors.btr
+[2026-04-24 02:31:38.716] [vde] [info] [DenseBtrieveStore::CreateFile] Created file: /data/session-1776997894180-utozfy/segment_0/vectors/_default/vectors.btr (dim=768, record_len=3088)
+[2026-04-24 02:31:38.716] [vde] [info] [DenseBtrieveStore::Open] Opened (dim=768, record_len=3088)
+[2026-04-24 02:31:38.747] [vde] [info] [SegmentStateStore::Open] File does not exist, creating: /data/session-1776997894180-utozfy/segment_0/segment_state.btr
+[2026-04-24 02:31:38.790] [vde] [info] [SegmentStateStore::CreateFile] segment_state file created: /data/session-1776997894180-utozfy/segment_0/segment_state.btr
+[2026-04-24 02:31:38.790] [vde] [info] [SegmentStateStore::Open] max_allocated_internal_id=0, schema_version=1, freshly_created=true
+[2026-04-24 02:31:38.791] [vde] [info] [VDECollection::Init(unified)] LocalShard initialized with 1 vector space(s)
+[2026-04-24 02:31:38.791] [vde] [info] [FlushManager] Registered collection 'session-1776997894180-utozfy'
+[2026-04-24 02:31:38.791] [vde] [info] [VDEEngine::CreateCollection(unified)] Collection 'session-1776997894180-utozfy' created successfully
+[2026-04-24 02:31:39.498] [vde] [info] [FaissVectorIndexDriver::Search] === FIRST SEARCH - HNSW Parameters ===
+[2026-04-24 02:31:39.498] [vde] [info] [FaissVectorIndexDriver::Search] Index ntotal: 1
+[2026-04-24 02:31:39.498] [vde] [info] [FaissVectorIndexDriver::Search] Storage ntotal: 1
+[2026-04-24 02:31:39.498] [vde] [info] [FaissVectorIndexDriver::Search] Query top_k: 3
+[2026-04-24 02:31:39.498] [vde] [info] [FaissVectorIndexDriver::Search] Configured efSearch: 64
+[2026-04-24 02:31:39.498] [vde] [info] [FaissVectorIndexDriver::Search] Request hnsw_ef override: 0
+[2026-04-24 02:31:39.498] [vde] [info] [FaissVectorIndexDriver::Search] Effective efSearch for this call: 64
+[2026-04-24 02:31:39.498] [vde] [info] [FaissVectorIndexDriver::Search] efConstruction: 200
+[2026-04-24 02:31:39.498] [vde] [info] [FaissVectorIndexDriver::Search] max_level: 0
+[2026-04-24 02:31:39.498] [vde] [info] [FaissVectorIndexDriver::Search] levels.size(): 1
+[2026-04-24 02:31:39.498] [vde] [info] [FaissVectorIndexDriver::Search] entry_point: 0
+[2026-04-24 02:31:39.498] [vde] [info] [FaissVectorIndexDriver::Search] M (neighbors at level 1): 32
+[2026-04-24 02:31:39.498] [vde] [info] [FaissVectorIndexDriver::Search] Storage exists: true, own_fields: true
+[2026-04-24 02:31:39.498] [vde] [info] [FaissVectorIndexDriver::Search] ============================================
+[2026-04-24 02:31:52.578] [vde] [info] [FlushManager] Timer started for 'session-1776997894180-utozfy' (interval=3600s)
+[2026-04-24 02:47:45.472] [vde] [info] [VDEEngine::CreateCollection(unified)] Creating 'session-1776998834354-961nmh' with 1 vector space(s)
+[2026-04-24 02:47:45.475] [vde] [info] [VDECollection::Init(unified)] name=session-1776998834354-961nmh, num_vectors=1
+[2026-04-24 02:47:45.476] [vde] [info] [VDECollection::SaveMetadata] Saving metadata for collection 'session-1776998834354-961nmh' to: /data/session-1776998834354-961nmh/metadata.json
+[2026-04-24 02:47:45.482] [vde] [info] [VDECollection::SaveMetadata] Metadata saved to /data/session-1776998834354-961nmh/metadata.json (storage_type=StorageType::BTRIEVE_FILE, index_driver_type=IndexDriverType::FAISS)
+[2026-04-24 02:47:45.548] [vde] [info] [PersistentIdMap::Open] File does not exist, creating: /data/session-1776998834354-961nmh/segment_0/id_map.btr
+[2026-04-24 02:47:45.607] [vde] [info] [PersistentIdMap::CreateFileStore] id_map file created: /data/session-1776998834354-961nmh/segment_0/id_map.btr
+[2026-04-24 02:47:45.607] [vde] [info] [PersistentIdMap::Open] Opened with 0 mappings, next_internal_id=0
+[2026-04-24 02:47:45.729] [vde] [info] [DenseBtrieveStore::Open] File does not exist, creating: /data/session-1776998834354-961nmh/segment_0/vectors/_default/vectors.btr
+[2026-04-24 02:47:45.785] [vde] [info] [DenseBtrieveStore::CreateFile] Created file: /data/session-1776998834354-961nmh/segment_0/vectors/_default/vectors.btr (dim=768, record_len=3088)
+[2026-04-24 02:47:45.785] [vde] [info] [DenseBtrieveStore::Open] Opened (dim=768, record_len=3088)
+[2026-04-24 02:47:45.813] [vde] [info] [SegmentStateStore::Open] File does not exist, creating: /data/session-1776998834354-961nmh/segment_0/segment_state.btr
+[2026-04-24 02:47:45.850] [vde] [info] [SegmentStateStore::CreateFile] segment_state file created: /data/session-1776998834354-961nmh/segment_0/segment_state.btr
+[2026-04-24 02:47:45.850] [vde] [info] [SegmentStateStore::Open] max_allocated_internal_id=0, schema_version=1, freshly_created=true
+[2026-04-24 02:47:45.850] [vde] [info] [VDECollection::Init(unified)] LocalShard initialized with 1 vector space(s)
+[2026-04-24 02:47:45.850] [vde] [info] [FlushManager] Registered collection 'session-1776998834354-961nmh'
+[2026-04-24 02:47:45.850] [vde] [info] [VDEEngine::CreateCollection(unified)] Collection 'session-1776998834354-961nmh' created successfully
+[2026-04-24 02:47:48.455] [vde] [info] [FaissVectorIndexDriver::Search] === FIRST SEARCH - HNSW Parameters ===
+[2026-04-24 02:47:48.455] [vde] [info] [FaissVectorIndexDriver::Search] Index ntotal: 1
+[2026-04-24 02:47:48.455] [vde] [info] [FaissVectorIndexDriver::Search] Storage ntotal: 1
+[2026-04-24 02:47:48.455] [vde] [info] [FaissVectorIndexDriver::Search] Query top_k: 3
+[2026-04-24 02:47:48.455] [vde] [info] [FaissVectorIndexDriver::Search] Configured efSearch: 64
+[2026-04-24 02:47:48.455] [vde] [info] [FaissVectorIndexDriver::Search] Request hnsw_ef override: 0
+[2026-04-24 02:47:48.455] [vde] [info] [FaissVectorIndexDriver::Search] Effective efSearch for this call: 64
+[2026-04-24 02:47:48.455] [vde] [info] [FaissVectorIndexDriver::Search] efConstruction: 200
+[2026-04-24 02:47:48.455] [vde] [info] [FaissVectorIndexDriver::Search] max_level: 0
+[2026-04-24 02:47:48.455] [vde] [info] [FaissVectorIndexDriver::Search] levels.size(): 1
+[2026-04-24 02:47:48.455] [vde] [info] [FaissVectorIndexDriver::Search] entry_point: 0
+[2026-04-24 02:47:48.455] [vde] [info] [FaissVectorIndexDriver::Search] M (neighbors at level 1): 32
+[2026-04-24 02:47:48.455] [vde] [info] [FaissVectorIndexDriver::Search] Storage exists: true, own_fields: true
+[2026-04-24 02:47:48.455] [vde] [info] [FaissVectorIndexDriver::Search] ============================================
+[2026-04-24 02:47:52.586] [vde] [info] [FlushManager] Timer started for 'session-1776998834354-961nmh' (interval=3600s)
+[2026-04-24 03:09:47.720] [vde] [info] [VDEEngine::CreateCollection(unified)] Creating 'session-1777000162972-bxe9zr' with 1 vector space(s)
+[2026-04-24 03:09:47.724] [vde] [info] [VDECollection::Init(unified)] name=session-1777000162972-bxe9zr, num_vectors=1
+[2026-04-24 03:09:47.724] [vde] [info] [VDECollection::SaveMetadata] Saving metadata for collection 'session-1777000162972-bxe9zr' to: /data/session-1777000162972-bxe9zr/metadata.json
+[2026-04-24 03:09:47.729] [vde] [info] [VDECollection::SaveMetadata] Metadata saved to /data/session-1777000162972-bxe9zr/metadata.json (storage_type=StorageType::BTRIEVE_FILE, index_driver_type=IndexDriverType::FAISS)
+[2026-04-24 03:09:47.801] [vde] [info] [PersistentIdMap::Open] File does not exist, creating: /data/session-1777000162972-bxe9zr/segment_0/id_map.btr
+[2026-04-24 03:09:47.881] [vde] [info] [PersistentIdMap::CreateFileStore] id_map file created: /data/session-1777000162972-bxe9zr/segment_0/id_map.btr
+[2026-04-24 03:09:47.881] [vde] [info] [PersistentIdMap::Open] Opened with 0 mappings, next_internal_id=0
+[2026-04-24 03:09:48.021] [vde] [info] [DenseBtrieveStore::Open] File does not exist, creating: /data/session-1777000162972-bxe9zr/segment_0/vectors/_default/vectors.btr
+[2026-04-24 03:09:48.078] [vde] [info] [DenseBtrieveStore::CreateFile] Created file: /data/session-1777000162972-bxe9zr/segment_0/vectors/_default/vectors.btr (dim=768, record_len=3088)
+[2026-04-24 03:09:48.078] [vde] [info] [DenseBtrieveStore::Open] Opened (dim=768, record_len=3088)
+[2026-04-24 03:09:48.107] [vde] [info] [SegmentStateStore::Open] File does not exist, creating: /data/session-1777000162972-bxe9zr/segment_0/segment_state.btr
+[2026-04-24 03:09:48.145] [vde] [info] [SegmentStateStore::CreateFile] segment_state file created: /data/session-1777000162972-bxe9zr/segment_0/segment_state.btr
+[2026-04-24 03:09:48.145] [vde] [info] [SegmentStateStore::Open] max_allocated_internal_id=0, schema_version=1, freshly_created=true
+[2026-04-24 03:09:48.145] [vde] [info] [VDECollection::Init(unified)] LocalShard initialized with 1 vector space(s)
+[2026-04-24 03:09:48.145] [vde] [info] [FlushManager] Registered collection 'session-1777000162972-bxe9zr'
+[2026-04-24 03:09:48.145] [vde] [info] [VDEEngine::CreateCollection(unified)] Collection 'session-1777000162972-bxe9zr' created successfully
+[2026-04-24 03:09:50.815] [vde] [info] [FaissVectorIndexDriver::Search] === FIRST SEARCH - HNSW Parameters ===
+[2026-04-24 03:09:50.815] [vde] [info] [FaissVectorIndexDriver::Search] Index ntotal: 1
+[2026-04-24 03:09:50.815] [vde] [info] [FaissVectorIndexDriver::Search] Storage ntotal: 1
+[2026-04-24 03:09:50.815] [vde] [info] [FaissVectorIndexDriver::Search] Query top_k: 3
+[2026-04-24 03:09:50.815] [vde] [info] [FaissVectorIndexDriver::Search] Configured efSearch: 64
+[2026-04-24 03:09:50.815] [vde] [info] [FaissVectorIndexDriver::Search] Request hnsw_ef override: 0
+[2026-04-24 03:09:50.815] [vde] [info] [FaissVectorIndexDriver::Search] Effective efSearch for this call: 64
+[2026-04-24 03:09:50.815] [vde] [info] [FaissVectorIndexDriver::Search] efConstruction: 200
+[2026-04-24 03:09:50.815] [vde] [info] [FaissVectorIndexDriver::Search] max_level: 0
+[2026-04-24 03:09:50.815] [vde] [info] [FaissVectorIndexDriver::Search] levels.size(): 1
+[2026-04-24 03:09:50.815] [vde] [info] [FaissVectorIndexDriver::Search] entry_point: 0
+[2026-04-24 03:09:50.815] [vde] [info] [FaissVectorIndexDriver::Search] M (neighbors at level 1): 32
+[2026-04-24 03:09:50.815] [vde] [info] [FaissVectorIndexDriver::Search] Storage exists: true, own_fields: true
+[2026-04-24 03:09:50.815] [vde] [info] [FaissVectorIndexDriver::Search] ============================================
+[2026-04-24 03:09:52.596] [vde] [info] [FlushManager] Timer started for 'session-1777000162972-bxe9zr' (interval=3600s)
+[2026-04-24 03:17:47.640] [vde] [info] [VDEEngine::CreateCollection(unified)] Creating 'session-1777000644986-2e5c7p' with 1 vector space(s)
+[2026-04-24 03:17:47.642] [vde] [info] [VDECollection::Init(unified)] name=session-1777000644986-2e5c7p, num_vectors=1
+[2026-04-24 03:17:47.642] [vde] [info] [VDECollection::SaveMetadata] Saving metadata for collection 'session-1777000644986-2e5c7p' to: /data/session-1777000644986-2e5c7p/metadata.json
+[2026-04-24 03:17:47.647] [vde] [info] [VDECollection::SaveMetadata] Metadata saved to /data/session-1777000644986-2e5c7p/metadata.json (storage_type=StorageType::BTRIEVE_FILE, index_driver_type=IndexDriverType::FAISS)
+[2026-04-24 03:17:47.706] [vde] [info] [PersistentIdMap::Open] File does not exist, creating: /data/session-1777000644986-2e5c7p/segment_0/id_map.btr
+[2026-04-24 03:17:47.762] [vde] [info] [PersistentIdMap::CreateFileStore] id_map file created: /data/session-1777000644986-2e5c7p/segment_0/id_map.btr
+[2026-04-24 03:17:47.762] [vde] [info] [PersistentIdMap::Open] Opened with 0 mappings, next_internal_id=0
+[2026-04-24 03:17:47.881] [vde] [info] [DenseBtrieveStore::Open] File does not exist, creating: /data/session-1777000644986-2e5c7p/segment_0/vectors/_default/vectors.btr
+[2026-04-24 03:17:47.942] [vde] [info] [DenseBtrieveStore::CreateFile] Created file: /data/session-1777000644986-2e5c7p/segment_0/vectors/_default/vectors.btr (dim=768, record_len=3088)
+[2026-04-24 03:17:47.942] [vde] [info] [DenseBtrieveStore::Open] Opened (dim=768, record_len=3088)
+[2026-04-24 03:17:47.972] [vde] [info] [SegmentStateStore::Open] File does not exist, creating: /data/session-1777000644986-2e5c7p/segment_0/segment_state.btr
+[2026-04-24 03:17:48.014] [vde] [info] [SegmentStateStore::CreateFile] segment_state file created: /data/session-1777000644986-2e5c7p/segment_0/segment_state.btr
+[2026-04-24 03:17:48.014] [vde] [info] [SegmentStateStore::Open] max_allocated_internal_id=0, schema_version=1, freshly_created=true
+[2026-04-24 03:17:48.014] [vde] [info] [VDECollection::Init(unified)] LocalShard initialized with 1 vector space(s)
+[2026-04-24 03:17:48.014] [vde] [info] [FlushManager] Registered collection 'session-1777000644986-2e5c7p'
+[2026-04-24 03:17:48.014] [vde] [info] [VDEEngine::CreateCollection(unified)] Collection 'session-1777000644986-2e5c7p' created successfully
+[2026-04-24 03:17:50.570] [vde] [info] [FaissVectorIndexDriver::Search] === FIRST SEARCH - HNSW Parameters ===
+[2026-04-24 03:17:50.570] [vde] [info] [FaissVectorIndexDriver::Search] Index ntotal: 1
+[2026-04-24 03:17:50.570] [vde] [info] [FaissVectorIndexDriver::Search] Storage ntotal: 1
+[2026-04-24 03:17:50.570] [vde] [info] [FaissVectorIndexDriver::Search] Query top_k: 3
+[2026-04-24 03:17:50.570] [vde] [info] [FaissVectorIndexDriver::Search] Configured efSearch: 64
+[2026-04-24 03:17:50.570] [vde] [info] [FaissVectorIndexDriver::Search] Request hnsw_ef override: 0
+[2026-04-24 03:17:50.570] [vde] [info] [FaissVectorIndexDriver::Search] Effective efSearch for this call: 64
+[2026-04-24 03:17:50.570] [vde] [info] [FaissVectorIndexDriver::Search] efConstruction: 200
+[2026-04-24 03:17:50.570] [vde] [info] [FaissVectorIndexDriver::Search] max_level: 0
+[2026-04-24 03:17:50.570] [vde] [info] [FaissVectorIndexDriver::Search] levels.size(): 1
+[2026-04-24 03:17:50.570] [vde] [info] [FaissVectorIndexDriver::Search] entry_point: 0
+[2026-04-24 03:17:50.570] [vde] [info] [FaissVectorIndexDriver::Search] M (neighbors at level 1): 32
+[2026-04-24 03:17:50.570] [vde] [info] [FaissVectorIndexDriver::Search] Storage exists: true, own_fields: true
+[2026-04-24 03:17:50.570] [vde] [info] [FaissVectorIndexDriver::Search] ============================================
+[2026-04-24 03:17:52.600] [vde] [info] [FlushManager] Timer started for 'session-1777000644986-2e5c7p' (interval=3600s)
+[2026-04-24 04:13:14.306] [vde] [info] [VDEEngine::ListCollections] Listing all collections
+[2026-04-24 04:13:14.324] [vde] [info] [VDEEngine::ListCollections] Found 10 collections
+[2026-04-24 04:15:29.366] [vde] [info] VDE Engine shutting down...
+[2026-04-24 04:15:29.367] [vde] [info] [FlushManager] Stopped
+[2026-04-24 04:15:29.367] [vde] [info] Shutting down rebuild manager (waiting up to 30s for tasks to complete)...
+[2026-04-24 04:15:29.367] [vde] [info] Rebuild manager shutdown complete
+[2026-04-24 04:15:29.368] [vde] [info] [VDECollection::~VDECollection] Destroying collection 'session-1777000162972-bxe9zr'
+[2026-04-24 04:15:29.368] [vde] [info] [VDECollection::~VDECollection] Flush collection before destruction
+[2026-04-24 04:15:29.368] [vde] [info] [VDECollection::SaveMetadata] Saving metadata for collection 'session-1777000162972-bxe9zr' to: /data/session-1777000162972-bxe9zr/metadata.json
+[2026-04-24 04:15:29.389] [vde] [info] [VDECollection::SaveMetadata] Metadata saved to /data/session-1777000162972-bxe9zr/metadata.json (storage_type=StorageType::BTRIEVE_FILE, index_driver_type=IndexDriverType::FAISS)
+[2026-04-24 04:15:29.442] [vde] [info] [FaissVectorIndexDriver::Serialize] Serializing index to: /data/session-1777000162972-bxe9zr/segment_0/vectors/default
+[2026-04-24 04:15:29.444] [vde] [info] [FaissVectorIndexDriver::Serialize] Index stats: ntotal=1, id_map_size=1, deleted_ids=0
+[2026-04-24 04:15:29.444] [vde] [info] [FaissVectorIndexDriver::Serialize] HNSW params: efConstruction=200, efSearch=64, max_level=0
+[2026-04-24 04:15:29.447] [vde] [info] [FaissVectorIndexDriver::Serialize] Writing FAISS index to: /data/session-1777000162972-bxe9zr/segment_0/vectors/default/faiss.index
+[2026-04-24 04:15:29.456] [vde] [info] [FaissVectorIndexDriver::Serialize] FAISS index written successfully
+[2026-04-24 04:15:29.477] [vde] [info] [FaissVectorIndexDriver::Serialize] Index file size: 0.00 MB
+[2026-04-24 04:15:29.506] [vde] [info] [FaissVectorIndexDriver::Serialize] Metadata written to /data/session-1777000162972-bxe9zr/segment_0/vectors/default.meta
+[2026-04-24 04:15:29.506] [vde] [info] [FaissVectorIndexDriver::Serialize] Serialization completed
+[2026-04-24 04:15:29.542] [vde] [info] [VDECollection::~VDECollection] Flush completed.
+[2026-04-24 04:15:29.542] [vde] [info] [VDECollection::~VDECollection] Collection 'session-1777000162972-bxe9zr' destroyed successfully
+[2026-04-24 04:15:29.553] [vde] [info] [VDECollection::~VDECollection] Destroying collection 'session-1776998834354-961nmh'
+[2026-04-24 04:15:29.553] [vde] [info] [VDECollection::~VDECollection] Flush collection before destruction
+[2026-04-24 04:15:29.553] [vde] [info] [VDECollection::SaveMetadata] Saving metadata for collection 'session-1776998834354-961nmh' to: /data/session-1776998834354-961nmh/metadata.json
+[2026-04-24 04:15:29.570] [vde] [info] [VDECollection::SaveMetadata] Metadata saved to /data/session-1776998834354-961nmh/metadata.json (storage_type=StorageType::BTRIEVE_FILE, index_driver_type=IndexDriverType::FAISS)
+[2026-04-24 04:15:29.615] [vde] [info] [FaissVectorIndexDriver::Serialize] Serializing index to: /data/session-1776998834354-961nmh/segment_0/vectors/default
+[2026-04-24 04:15:29.615] [vde] [info] [FaissVectorIndexDriver::Serialize] Index stats: ntotal=1, id_map_size=1, deleted_ids=0
+[2026-04-24 04:15:29.615] [vde] [info] [FaissVectorIndexDriver::Serialize] HNSW params: efConstruction=200, efSearch=64, max_level=0
+[2026-04-24 04:15:29.618] [vde] [info] [FaissVectorIndexDriver::Serialize] Writing FAISS index to: /data/session-1776998834354-961nmh/segment_0/vectors/default/faiss.index
+[2026-04-24 04:15:29.622] [vde] [info] [FaissVectorIndexDriver::Serialize] FAISS index written successfully
+[2026-04-24 04:15:29.643] [vde] [info] [FaissVectorIndexDriver::Serialize] Index file size: 0.00 MB
+[2026-04-24 04:15:29.698] [vde] [info] [FaissVectorIndexDriver::Serialize] Metadata written to /data/session-1776998834354-961nmh/segment_0/vectors/default.meta
+[2026-04-24 04:15:29.698] [vde] [info] [FaissVectorIndexDriver::Serialize] Serialization completed
+[2026-04-24 04:15:29.732] [vde] [info] [VDECollection::~VDECollection] Flush completed.
+[2026-04-24 04:15:29.732] [vde] [info] [VDECollection::~VDECollection] Collection 'session-1776998834354-961nmh' destroyed successfully
+[2026-04-24 04:15:29.741] [vde] [info] [VDECollection::~VDECollection] Destroying collection 'session-1777000644986-2e5c7p'
+[2026-04-24 04:15:29.741] [vde] [info] [VDECollection::~VDECollection] Flush collection before destruction
+[2026-04-24 04:15:29.741] [vde] [info] [VDECollection::SaveMetadata] Saving metadata for collection 'session-1777000644986-2e5c7p' to: /data/session-1777000644986-2e5c7p/metadata.json
+[2026-04-24 04:15:29.747] [vde] [info] [VDECollection::SaveMetadata] Metadata saved to /data/session-1777000644986-2e5c7p/metadata.json (storage_type=StorageType::BTRIEVE_FILE, index_driver_type=IndexDriverType::FAISS)
+[2026-04-24 04:15:29.789] [vde] [info] [FaissVectorIndexDriver::Serialize] Serializing index to: /data/session-1777000644986-2e5c7p/segment_0/vectors/default
+[2026-04-24 04:15:29.789] [vde] [info]

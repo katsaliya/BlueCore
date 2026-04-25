@@ -1,0 +1,17 @@
+{
+  "checksum": "fb12adffdec79c14",
+  "flushed_deleted_count": 0,
+  "format_version": 1,
+  "index_files": {
+    "": {
+      "index": "/data/session-1776998834354-961nmh/segment_0/vectors/default/faiss.index",
+      "meta": "/data/session-1776998834354-961nmh/segment_0/vectors/default/faiss.index.meta"
+    }
+  },
+  "max_allocated_internal_id": 1,
+  "store_watermarks": {
+    "": 639125956681758027,
+    "id_map": 639125956681771761,
+    "payload": 639125956681749910
+  }
+}

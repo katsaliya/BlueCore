@@ -1,0 +1,7 @@
+services:
+  vectorai:
+    image: "${VECTORAI_IMAGE}:${VECTORAI_TAG}"
+    container_name: "${VECTORAI_CONTAINER_NAME}"
+    ports:
+      - "127.0.0.1:${VECTORAI_HOST_PORT}:${VECTORAI_CONTAINER_PORT}"
+    restart: unless-stopped
