@@ -96,10 +96,3 @@ npm run dev
 | Containerization | Docker |
 
 ---
-
-## Team
-
-| Name | Role |
-|---|---|
-| Kataliya Sungkamee | Frontend, backend session pipeline, voice + RAG integration |
-| Arman Daghbashyan | Auth, SQLite setup, VectorAI DB |
