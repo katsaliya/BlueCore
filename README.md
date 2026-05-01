@@ -101,5 +101,6 @@ npm run dev
 
 | Name | Role |
 |---|---|
-| Kataliya Sungkamee | Frontend, backend session pipeline, voice + RAG integration |
-| Arman Daghbashyan | Auth, SQLite setup, VectorAI DB |
+| Kataliya Sungkamee | 
+| Arman Daghbashyan | 
+| John Tatlonghari | 
