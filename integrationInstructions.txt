@@ -1,0 +1,586 @@
+BlueCore Frontend Integration Instructions
+==========================================
+
+Base URL
+--------
+http://127.0.0.1:8080
+
+
+AUTH
+====
+Most protected routes require:
+Authorization: Bearer <token>
+
+1) POST /auth/register
+Create local user account.
+
+Request body:
+{
+  "username": "sailor1",
+  "password": "pass1234",
+  "displayName": "Demo Sailor"
+}
+
+Response:
+{
+  "ok": true,
+  "user": {
+    "id": 1,
+    "username": "sailor1",
+    "displayName": "Demo Sailor",
+    "role": "sailor"
+  },
+  "token": "..."
+}
+
+
+2) POST /auth/login
+Login with username/password.
+
+Request body:
+{
+  "username": "sailor1",
+  "password": "pass1234"
+}
+
+Response:
+{
+  "ok": true,
+  "user": {
+    "id": 1,
+    "username": "sailor1",
+    "displayName": "Demo Sailor",
+    "role": "sailor"
+  },
+  "token": "..."
+}
+
+
+3) GET /auth/me
+Get current logged-in user.
+
+Headers:
+Authorization: Bearer <token>
+
+Response:
+{
+  "ok": true,
+  "user": {
+    "id": 1,
+    "username": "sailor1",
+    "displayName": "Demo Sailor",
+    "role": "sailor"
+  }
+}
+
+
+DOCUMENT TEMPLATE FLOW
+======================
+
+4) GET /document-templates
+Get available document templates.
+
+Headers:
+Authorization: Bearer <token>
+
+Response:
+{
+  "ok": true,
+  "templates": [
+    {
+      "id": 1,
+      "code": "shift-log-v1",
+      "name": "Placeholder Shift Log",
+      "description": "A placeholder shift log template that can be replaced later with a real maritime form.",
+      "schemaJson": "{...}",
+      "createdAt": "2026-..."
+    }
+  ]
+}
+
+Frontend use:
+- Template picker screen
+- Start a document flow from selected template
+
+
+DOCUMENT RUN FLOW
+=================
+
+5) POST /documents
+Create a new document run.
+
+Headers:
+Authorization: Bearer <token>
+Content-Type: application/json
+
+Request body:
+{
+  "templateCode": "shift-log-v1",
+  "title": "Shift Log Draft",
+  "sessionId": "session-..."   // optional
+}
+
+Response:
+{
+  "ok": true,
+  "document": {
+    "id": 1,
+    "userId": 1,
+    "sessionId": null,
+    "templateId": 1,
+    "status": "collecting",
+    "title": "Shift Log Draft",
+    "createdAt": "2026-...",
+    "completedAt": null
+  }
+}
+
+Frontend use:
+- Create new document from template
+- Then route user to document detail screen using document id
+
+
+6) GET /documents
+Get all documents belonging to logged-in user.
+
+Headers:
+Authorization: Bearer <token>
+
+Response:
+{
+  "ok": true,
+  "documents": [
+    {
+      "id": 1,
+      "userId": 1,
+      "sessionId": null,
+      "templateId": 1,
+      "status": "collecting",
+      "title": "Shift Log Draft",
+      "createdAt": "2026-...",
+      "completedAt": null
+    }
+  ]
+}
+
+Frontend use:
+- "My Documents" page
+- Resume previous document runs
+
+
+7) GET /documents/:id
+Main document state endpoint.
+This is the most important route for the document UI.
+
+Headers:
+Authorization: Bearer <token>
+
+Response:
+{
+  "ok": true,
+  "document": {
+    "id": 1,
+    "userId": 1,
+    "sessionId": null,
+    "templateId": 1,
+    "status": "collecting",
+    "title": "Shift Log Draft",
+    "createdAt": "2026-...",
+    "completedAt": null
+  },
+  "template": {
+    "id": 1,
+    "code": "shift-log-v1",
+    "name": "Placeholder Shift Log",
+    "description": "..."
+  },
+  "fields": [
+    {
+      "name": "vessel_name",
+      "label": "Vessel Name",
+      "type": "text",
+      "required": true,
+      "prompt": "What is the vessel name?",
+      "value": "BlueCore Voyager",
+      "source": "chat",
+      "confidence": 1,
+      "updatedAt": "2026-..."
+    }
+  ],
+  "missingRequiredFields": [
+    "shift_date",
+    "shift_start",
+    "shift_end",
+    "task_summary"
+  ],
+  "completionPercent": 43,
+  "currentField": {
+    "name": "shift_date",
+    "label": "Shift Date",
+    "type": "date",
+    "required": true,
+    "prompt": "What is the shift date?"
+  },
+  "nextQuestion": "What is the shift date?",
+  "isReadyForPdf": false,
+  "readyForReview": false,
+  "reviewSummary": [
+    {
+      "label": "Vessel Name",
+      "value": "BlueCore Voyager",
+      "required": true
+    }
+  ],
+  "nextAction": "answer_next_question",
+  "outputs": [
+    {
+      "id": 1,
+      "documentRunId": 1,
+      "outputType": "pdf",
+      "outputMode": "draft",
+      "mimeType": "application/pdf",
+      "filePath": "C:\\...\\file.pdf",
+      "createdAt": "2026-..."
+    }
+  ]
+}
+
+Frontend use:
+- Main document filling screen
+- Show filled fields
+- Show next question
+- Show progress
+- Show review summary
+- Show available generated outputs
+
+
+DOCUMENT FILLING
+================
+
+8) POST /documents/:id/fields
+Manual/direct field update.
+
+Headers:
+Authorization: Bearer <token>
+Content-Type: application/json
+
+Request body:
+{
+  "fieldName": "worker_name",
+  "fieldValue": "Arman",
+  "source": "manual",
+  "confidence": 1
+}
+
+Response:
+Same full shape as GET /documents/:id
+
+Frontend use:
+- Manual field editing UI
+- Correction screen
+
+
+9) POST /documents/:id/respond
+Chat-style document answer route.
+This fills the next missing required field automatically.
+
+Headers:
+Authorization: Bearer <token>
+Content-Type: application/json
+
+Request body:
+{
+  "text": "BlueCore Voyager"
+}
+
+Response:
+{
+  "ok": true,
+  "transcript": null,
+  ...same shape as GET /documents/:id...
+}
+
+Frontend use:
+- Main text chat document flow
+- User sends answer
+- Backend advances currentField / nextQuestion
+
+
+10) POST /documents/:id/respond/audio
+Voice version of document answer flow.
+
+Headers:
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+
+Form fields:
+- file
+
+Response:
+{
+  "ok": true,
+  "transcript": "spoken answer text",
+  "transcriptLanguage": "en",
+  "transcriptDuration": 4.21,
+  ...same shape as GET /documents/:id...
+}
+
+Frontend use:
+- Voice chat document filling
+- Record/upload audio answer
+- Use returned transcript for UI display if needed
+
+
+REVIEW / CONFIRM / FINALIZE
+===========================
+
+11) POST /documents/:id/review
+Get review summary.
+This does NOT create a file.
+
+Headers:
+Authorization: Bearer <token>
+Content-Type: application/json
+
+Request body:
+{}
+
+Response:
+{
+  "ok": true,
+  "readyForReview": true,
+  "reviewSummary": [
+    {
+      "label": "Vessel Name",
+      "value": "BlueCore Voyager",
+      "required": true
+    },
+    {
+      "label": "Worker Name",
+      "value": "Arman",
+      "required": true
+    }
+  ],
+  "missingRequiredFields": [],
+  "completionPercent": 100,
+  "nextAction": "confirm_or_edit"
+}
+
+Frontend use:
+- Review screen before finalization
+- Show document glance/check page
+
+
+12) POST /documents/:id/confirm-review
+User confirms review is correct.
+
+Headers:
+Authorization: Bearer <token>
+Content-Type: application/json
+
+Request body:
+{
+  "confirmed": true
+}
+
+Response:
+{
+  "ok": true,
+  "message": "Review confirmed",
+  ...document state...
+}
+
+Frontend use:
+- "Looks good" / "Confirm" button before final export
+
+
+13) POST /documents/:id/finalize
+Generate final PDF after review confirmation.
+If final PDF already exists, backend reuses it instead of making duplicates.
+
+Headers:
+Authorization: Bearer <token>
+Content-Type: application/json
+
+Request body:
+{}
+
+Response:
+{
+  "ok": true,
+  "message": "Document finalized",
+  "reused": false,
+  "output": {
+    "id": 3,
+    "documentRunId": 1,
+    "outputType": "pdf",
+    "outputMode": "final",
+    "mimeType": "application/pdf",
+    "filePath": "C:\\...\\file.pdf",
+    "createdAt": "2026-..."
+  },
+  ...document state...
+}
+
+Frontend use:
+- Final export button after review confirmation
+- Save output id for download
+
+
+PDF EXPORT / DOWNLOAD
+=====================
+
+14) POST /documents/:id/export/pdf
+Manual PDF export endpoint.
+
+Headers:
+Authorization: Bearer <token>
+Content-Type: application/json
+
+Request body:
+{
+  "mode": "draft"
+}
+
+Optional:
+{
+  "mode": "draft",
+  "forceRegenerate": true
+}
+
+Rules:
+- draft can be generated manually
+- final requires review confirmation and complete required fields
+- existing file may be reused unless forceRegenerate = true
+
+Response:
+{
+  "ok": true,
+  "reused": false,
+  "output": {
+    "id": 2,
+    "documentRunId": 1,
+    "outputType": "pdf",
+    "outputMode": "draft",
+    "mimeType": "application/pdf",
+    "filePath": "C:\\...\\file.pdf",
+    "createdAt": "2026-..."
+  }
+}
+
+Frontend use:
+- Optional draft PDF preview button
+- Manual export controls
+
+
+15) GET /document-outputs/:outputId/download
+Download generated PDF file.
+
+Headers:
+Authorization: Bearer <token>
+
+Response:
+Binary file download
+
+Frontend use:
+- Download button after export/finalize
+- Open generated PDF
+
+
+EXISTING SESSION / CHAT FLOW
+============================
+
+These may already be wired, but listing for completeness:
+
+16) GET /sessions
+17) POST /session/start
+18) GET /session/history?sessionId=<sessionId>
+19) POST /session/message
+20) POST /session/message/audio
+21) POST /session/message/audio/reply-audio
+
+Use these for the regular backend/chat flow that already exists.
+
+
+HEALTH
+======
+
+22) GET /health
+Basic backend health
+
+23) GET /health/dependencies
+Dependency check
+
+Response example:
+{
+  "ok": true,
+  "dependencies": [
+    {
+      "ok": true,
+      "name": "local-llm",
+      "detail": "reachable at http://127.0.0.1:11434/api/tags"
+    },
+    {
+      "ok": true,
+      "name": "vectorai-bridge",
+      "detail": "reachable at http://127.0.0.1:50054/health"
+    }
+  ]
+}
+
+
+IMPORTANT FRONTEND NOTES
+========================
+
+1. Almost all useful routes require:
+   Authorization: Bearer <token>
+
+2. Ownership is enforced.
+   If wrong user requests session/document/output, backend returns 404.
+
+3. Most important document UI route:
+   GET /documents/:id
+
+4. Main document text answer flow:
+   POST /documents/:id/respond
+
+5. Main document voice answer flow:
+   POST /documents/:id/respond/audio
+
+6. Review flow:
+   POST /documents/:id/review
+   POST /documents/:id/confirm-review
+   POST /documents/:id/finalize
+
+7. PDF download:
+   GET /document-outputs/:outputId/download
+
+8. Suggested frontend flow:
+   - login
+   - load templates
+   - create document
+   - repeatedly call respond/respond.audio
+   - render nextQuestion/currentField
+   - when readyForReview = true, show review screen
+   - confirm review
+   - finalize
+   - download final pdf
+
+9. Current placeholder template:
+   code = shift-log-v1
+   name = Placeholder Shift Log
+
+10. Current required fields:
+   - vessel_name
+   - worker_name
+   - role
+   - shift_date
+   - shift_start
+   - shift_end
+   - task_summary
+
+11. Current optional fields:
+   - incidents_observed
+   - equipment_status
+   - fatigue_level
+   - additional_notes
