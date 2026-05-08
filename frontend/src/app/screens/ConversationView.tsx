@@ -25,7 +25,7 @@ export function ConversationView() {
   const [messages] = useState(mockConversation);
 
   return (
-    <div className="flex flex-col h-screen relative overflow-hidden bg-app-canvas">
+    <div className="flex flex-col h-full relative overflow-hidden bg-app-canvas">
       <div className="absolute inset-0 pointer-events-none">
         <div
           className="absolute inset-0"

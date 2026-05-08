@@ -15,7 +15,7 @@ export function Root() {
   const isHome = location.pathname === "/app";
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden max-w-[430px] mx-auto relative bg-app-canvas text-app-fg">
+    <div className="flex flex-col h-full overflow-hidden relative bg-app-canvas text-app-fg">
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         <Outlet />
       </div>

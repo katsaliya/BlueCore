@@ -37,7 +37,7 @@ export default function Landing() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.8 }}
-      className="bg-[#dfebfe] relative min-h-screen w-full"
+      className="bg-[#dfebfe] relative h-full w-full"
       data-name="Landing"
     >
       <Logo />
