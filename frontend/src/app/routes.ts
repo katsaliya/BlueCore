@@ -7,7 +7,6 @@ import { Connect } from "./screens/Connect";
 import { NewsFeed } from "./screens/NewsFeed";
 import { Profile } from "./screens/Profile";
 import { PastDocuments } from "./screens/PastDocuments";
-import { Splash } from "./screens/Splash";
 import Landing from "./screens/Landing";
 import { DocumentPreview } from "./screens/DocumentPreview";
 
@@ -15,7 +14,6 @@ export const router = createBrowserRouter([
   { path: "/", Component: Landing },
   { path: "/app", Component: VoiceHomeV2 },
   { path: "/document-preview", Component: DocumentPreview },
-  { path: "/splash", Component: Splash },
   { path: "/home-v2", Component: VoiceHomeV2 },
   {
     Component: Root,
