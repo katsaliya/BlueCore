@@ -1,7 +1,6 @@
 import { createBrowserRouter } from "react-router";
 import { Root } from "./Root";
 import { VoiceHomeV2 } from "./screens/VoiceHomeV2";
-import { Dashboard } from "./screens/Dashboard";
 import { Schedule } from "./screens/Schedule";
 import { Connect } from "./screens/Connect";
 import { Profile } from "./screens/Profile";
@@ -20,7 +19,6 @@ export const router = createBrowserRouter([
       { path: "/social", Component: Connect },
       { path: "/documents", Component: PastDocuments },
       { path: "/profile", Component: Profile },
-      { path: "/insights", Component: Dashboard },
       { path: "/schedule", Component: Schedule },
     ],
   },
