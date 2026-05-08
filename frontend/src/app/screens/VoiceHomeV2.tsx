@@ -766,7 +766,7 @@ export function VoiceHomeV2() {
       : "var(--app-fg-muted)";
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-app-canvas">
+    <div className="flex flex-col h-screen overflow-hidden bg-app-canvas max-w-[430px] mx-auto relative">
 
       {/* ── Background gradients */}
       <div className="absolute inset-0 pointer-events-none z-0">
