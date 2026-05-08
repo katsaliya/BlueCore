@@ -4,7 +4,6 @@ import { VoiceHomeV2 } from "./screens/VoiceHomeV2";
 import { Dashboard } from "./screens/Dashboard";
 import { Schedule } from "./screens/Schedule";
 import { Connect } from "./screens/Connect";
-import { Wellbeing } from "./screens/Wellbeing";
 import { NewsFeed } from "./screens/NewsFeed";
 import { Profile } from "./screens/Profile";
 import { ConversationView } from "./screens/ConversationView";
@@ -28,7 +27,6 @@ export const router = createBrowserRouter([
       { path: "/conversation", Component: ConversationView },
       { path: "/insights", Component: Dashboard },
       { path: "/schedule", Component: Schedule },
-      { path: "/wellbeing", Component: Wellbeing },
       { path: "/news", Component: NewsFeed },
     ],
   },
