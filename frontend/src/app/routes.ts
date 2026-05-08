@@ -6,7 +6,6 @@ import { Schedule } from "./screens/Schedule";
 import { Connect } from "./screens/Connect";
 import { NewsFeed } from "./screens/NewsFeed";
 import { Profile } from "./screens/Profile";
-import { ConversationView } from "./screens/ConversationView";
 import { PastDocuments } from "./screens/PastDocuments";
 import { Splash } from "./screens/Splash";
 import Landing from "./screens/Landing";
@@ -24,7 +23,6 @@ export const router = createBrowserRouter([
       { path: "/social", Component: Connect },
       { path: "/documents", Component: PastDocuments },
       { path: "/profile", Component: Profile },
-      { path: "/conversation", Component: ConversationView },
       { path: "/insights", Component: Dashboard },
       { path: "/schedule", Component: Schedule },
       { path: "/news", Component: NewsFeed },
