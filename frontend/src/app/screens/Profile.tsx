@@ -48,7 +48,7 @@ export function Profile() {
         <div className="grid grid-cols-3 gap-3 mb-5">
           {[
             { label: "Days at Sea", value: currentUser.daysAtSea, icon: <Ship size={13} /> },
-            { label: "Wellbeing", value: `${currentUser.wellbeingScore}%`, icon: "💛" },
+            { label: "Contract", value: `${currentUser.daysAtSea}/${currentUser.contractDays}d`, icon: "📋" },
             { label: "Joined", value: `${currentUser.joinedDays}d ago`, icon: <Star size={13} /> },
           ].map((s) => (
             <div

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring } from "motion/react";
 import { useNavigate } from "react-router";
 import { Mic, ChevronRight, FileText, Play, Grid, Home, Compass, Archive, User, Sun, Moon } from "lucide-react";
-import { currentUser } from "../data/mockData";
+import { currentUser, DEMO_SCRIPT_ENGINE_ROOM, DEMO_SCRIPT_OIL_RECORD, completedDocs } from "../data/mockData";
 import { useTheme } from "../contexts/ThemeContext";
 import {
   ApiError,
@@ -33,20 +33,20 @@ function getShiftContext(): {
   if (totalMin >= breakStart && totalMin < breakEnd) {
     return {
       mode: "break",
-      greeting: `Hey ${currentUser.nickname} 👋`,
-      followUp: "How did your morning watch go? And are you looking for someone to grab lunch with?",
+      greeting: `Hey ${currentUser.name}`,
+      followUp: "Hey Daniel — how was your shift? I can help close out a document while it's still fresh.",
     };
   } else if (totalMin >= shiftStart && totalMin < shiftEnd) {
     return {
       mode: "on-shift",
-      greeting: `Hey ${currentUser.nickname}`,
-      followUp: "Just checking in — everything going okay up there?",
+      greeting: `Hey ${currentUser.name}`,
+      followUp: "Hey Daniel — how was your shift? I can help close out a document while it's still fresh.",
     };
   } else {
     return {
       mode: "off-shift",
-      greeting: `Evening, ${currentUser.nickname}`,
-      followUp: "Watch is over for the day. How are you feeling? How did it all go?",
+      greeting: `Evening, ${currentUser.name}`,
+      followUp: "Hey Daniel — how was your shift? I can help close out a document while it's still fresh.",
     };
   }
 }
@@ -54,23 +54,38 @@ function getShiftContext(): {
 // ─── Simulated AI replies ─────────────────────────────────────────────────────
 const breakReplies = [
   "Got it. Sounds like the morning had its moments. How are you feeling overall — tension in the shoulders, or more of a mental load?",
-  "That tracks. Cargo ops always stretch longer than the paperwork suggests. You've still got a solid 80 minutes of break — want me to find someone to eat with?",
+  "That tracks. Engine room work always stretches longer than the paperwork suggests. You've still got a solid break window — want me to find someone to eat with?",
   "Noted. I'll flag that for your end-of-shift log. Right now though — have you eaten? And have you been outside at all today?",
   "Good to hear. You've been putting in consistent work this voyage. Elena and Marcus are both free right now if you want company. Same interests, same break window.",
 ];
 const shiftReplies = [
   "Good to know. I'll keep checking the acoustic readings quietly. Just say 'BlueCore' any time you need me.",
   "Understood. Take your time — I'm here whenever. And if the workload starts building up, just let me know.",
-  "Noted. You're doing well, Cal. Port approach is in a few hours — want me to prep a briefing summary for you?",
+  "Noted. You're doing well, Daniel. Port approach is in a few hours — want me to prep a briefing summary for you?",
 ];
 const offShiftReplies = [
   "Rest well then. I'll keep tonight's check-in light. You've done a full watch — that deserves some real downtime.",
   "That's fair. I picked up on some tension in your voice around midday — it passed, but I wanted you to know I noticed. Tomorrow's a new day.",
-  "Sounds like a tough stretch. You've been at sea 18 days now — isolation compounds over time. I'm here if you want to talk it through.",
+  "Sounds like a tough stretch. You've been at sea 21 days now — isolation compounds over time. I'm here if you want to talk it through.",
 ];
 
-type Message = { role: "assistant" | "user"; text: string };
+type Message =
+  | { role: "assistant" | "user"; text: string }
+  | { role: "document"; docType: "engine-room" | "oil-record"; title: string };
 type BackendStatus = "connecting" | "ready" | "degraded" | "offline";
+type DemoEntry = { ai: string; user: string | null; fieldsUpdated: string[] };
+type CompletedDemoDoc = {
+  docType: "engine-room" | "oil-record";
+  title: string;
+  timestamp: Date;
+};
+
+let persistedMessages: Message[] = [];
+let persistedInputText = "";
+let persistedShowInput = false;
+let persistedDemoScript: DemoEntry[] | null = null;
+let persistedDemoStep = 0;
+let persistedCompletedDoc: CompletedDemoDoc | null = null;
 
 function getApiErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Unknown backend error";
@@ -293,9 +308,9 @@ export function VoiceHomeV2() {
   const ctx = getShiftContext();
 
   const [orbState, setOrbState] = useState<"idle" | "listening" | "speaking">("idle");
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputText, setInputText] = useState("");
-  const [showInput, setShowInput] = useState(false);
+  const [messages, setMessages] = useState<Message[]>(() => persistedMessages);
+  const [inputText, setInputText] = useState(() => persistedInputText);
+  const [showInput, setShowInput] = useState(() => persistedShowInput);
   const [isListening, setIsListening] = useState(false);
   const [showNav, setShowNav] = useState(false);
   const [backendStatus, setBackendStatus] = useState<BackendStatus>("connecting");
@@ -307,12 +322,29 @@ export function VoiceHomeV2() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
+  const demoScriptRef = useRef<DemoEntry[] | null>(persistedDemoScript);
+  const demoStepRef = useRef(persistedDemoStep);
+  const [completedDoc, setCompletedDoc] = useState<CompletedDemoDoc | null>(
+    persistedCompletedDoc
+  );
 
   const amp = useAcousticAmplitude(orbState);
   const ampRef = useRef<number>(0);
   useEffect(() => {
     return amp.on("change", (v) => { ampRef.current = v; });
   }, [amp]);
+
+  useEffect(() => {
+    persistedMessages = messages;
+  }, [messages]);
+
+  useEffect(() => {
+    persistedInputText = inputText;
+  }, [inputText]);
+
+  useEffect(() => {
+    persistedShowInput = showInput;
+  }, [showInput]);
 
   const sampleVoiceText = useCallback(() => {
     const samples =
@@ -336,6 +368,95 @@ export function VoiceHomeV2() {
 
     return samples[Math.floor(Math.random() * samples.length)];
   }, [ctx.mode]);
+
+  const startDemo = useCallback((script: DemoEntry[]) => {
+    demoScriptRef.current = script;
+    demoStepRef.current = 0;
+    persistedDemoScript = script;
+    persistedDemoStep = 0;
+    setShowNav(false);
+    setBackendIssue("");
+    setOrbState("speaking");
+    setTimeout(() => {
+      setMessages((prev) => [...prev, { role: "assistant", text: script[0].ai }]);
+      setTimeout(() => setOrbState("idle"), 1800);
+    }, 700);
+  }, []);
+
+  const finishDemoStep = useCallback((typedText?: string) => {
+    const script = demoScriptRef.current;
+    if (!script) return;
+    const step = demoStepRef.current;
+    const current = script[step];
+    if (!current || current.user === null) return;
+
+    if (listenTimer.current) {
+      clearTimeout(listenTimer.current);
+      listenTimer.current = null;
+    }
+
+    const userText = typedText?.trim() || current.user;
+    if (!userText) return;
+
+    setIsListening(false);
+    setInputText("");
+    setMessages(prev => [...prev, { role: "user", text: userText }]);
+    const nextStep = step + 1;
+    demoStepRef.current = nextStep;
+    persistedDemoStep = nextStep;
+    setOrbState("speaking");
+
+    setTimeout(() => {
+      const nextEntry = script[nextStep];
+      if (nextEntry) {
+        setMessages(prev => [...prev, { role: "assistant", text: nextEntry.ai }]);
+        if (nextEntry.user === null) {
+          const completedScript = demoScriptRef.current;
+          demoScriptRef.current = null;
+          persistedDemoScript = null;
+          setTimeout(() => {
+            const docType = completedScript === DEMO_SCRIPT_ENGINE_ROOM
+              ? "engine-room" as const
+              : "oil-record" as const;
+            const title = completedScript === DEMO_SCRIPT_ENGINE_ROOM
+              ? "Engine Room Log — 23 Apr 2025"
+              : "Oil Record Book Part I — 23 Apr 2025";
+            setMessages(prev => [...prev, { role: "document", docType, title }]);
+            const doc = { docType, title, timestamp: new Date() };
+            persistedCompletedDoc = doc;
+            setCompletedDoc(doc);
+            if (!completedDocs.some((item) => item.docType === doc.docType && item.title === doc.title)) {
+              completedDocs.unshift(doc);
+            }
+
+            setTimeout(() => {
+              setOrbState("speaking");
+              setMessages(prev => [
+                ...prev,
+                {
+                  role: "assistant",
+                  text:
+                    "All set — the PDF is ready to export. Anything else I can help with? If you're wrapped up, Marcus is BBQ'ing on the aft deck right now and Ravi is heading over, if you want to grab food with the crew.",
+                },
+              ]);
+              setTimeout(() => setOrbState("idle"), 1800);
+            }, 1200);
+          }, 2000);
+        }
+      }
+      setTimeout(() => setOrbState("idle"), 1800);
+    }, 900);
+  }, []);
+
+  const handleDemoMicToggle = useCallback(() => {
+    if (isListening) {
+      finishDemoStep();
+      return;
+    }
+
+    setIsListening(true);
+    setOrbState("listening");
+  }, [finishDemoStep, isListening]);
 
   const stopMediaStream = useCallback(() => {
     mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
@@ -404,10 +525,14 @@ export function VoiceHomeV2() {
   }, [markBackendError, stopMediaStream]);
 
   useEffect(() => {
+    if (persistedMessages.length > 0) return;
+
     const t1 = setTimeout(() => {
       setOrbState("speaking");
       const t2 = setTimeout(() => {
-        setMessages([{ role: "assistant", text: ctx.followUp }]);
+        setMessages((prev) =>
+          prev.length > 0 ? prev : [{ role: "assistant", text: ctx.followUp }]
+        );
         const t3 = setTimeout(() => setOrbState("idle"), 2600);
         return () => clearTimeout(t3);
       }, 1200);
@@ -427,6 +552,11 @@ export function VoiceHomeV2() {
     if (isSending) return;
 
     const cleanText = text.trim();
+    if (demoScriptRef.current !== null) {
+      finishDemoStep(cleanText);
+      return;
+    }
+
     setMessages((prev) => [...prev, { role: "user", text: cleanText }]);
     setInputText("");
     setOrbState("speaking");
@@ -466,7 +596,7 @@ export function VoiceHomeV2() {
       setIsSending(false);
       setTimeout(() => setOrbState("idle"), 900);
     }
-  }, [ensureBackendSession, isSending, markBackendError, refreshBackendSession]);
+  }, [ensureBackendSession, finishDemoStep, isSending, markBackendError, refreshBackendSession]);
 
   const sendRecordedAudio = useCallback(async (blob: Blob) => {
     if (isSending) return;
@@ -536,6 +666,11 @@ export function VoiceHomeV2() {
   const handleMicToggle = useCallback(async () => {
     if (isSending) return;
 
+    if (demoScriptRef.current !== null) {
+      handleDemoMicToggle();
+      return;
+    }
+
     if (isListening) {
       if (!stopRecording()) {
         setIsListening(false);
@@ -594,6 +729,7 @@ export function VoiceHomeV2() {
       void sendUserMessage(sampleVoiceText());
     }
   }, [
+    handleDemoMicToggle,
     isListening,
     isSending,
     sampleVoiceText,
@@ -603,9 +739,15 @@ export function VoiceHomeV2() {
     stopRecording,
   ]);
 
-  const modeLabel =
-    ctx.mode === "break" ? "Break Check-in" :
-    ctx.mode === "on-shift" ? "On Watch" : "Off Watch";
+  const getWatchLabel = () => {
+    const now = new Date();
+    const total = now.getHours() * 60 + now.getMinutes();
+    if (total >= 11 * 60 + 30 && total < 12 * 60) return "Pre-Watch  ·  12:00–16:00";
+    if (total >= 12 * 60 && total < 16 * 60) return "On Watch  ·  12:00–16:00";
+    if (total >= 0 && total < 4 * 60) return "On Watch  ·  00:00–04:00";
+    return "Off Watch  ·  Next: 00:00";
+  };
+
   const modeDotColor =
     ctx.mode === "break"
       ? "var(--app-status-break)"
@@ -615,18 +757,13 @@ export function VoiceHomeV2() {
   const modeLabelColor = modeDotColor;
 
   const stateHint =
-    backendStatus === "connecting" ? "Connecting…" :
-    backendStatus === "offline" ? "Backend offline" :
-    backendStatus === "degraded" ? "Service degraded" :
     isSending ? "Sending…" :
-    orbState === "listening" ? "Listening…" :
+    orbState === "listening" ? "Tap again to send" :
     orbState === "speaking" ? "BlueCore" : "Tap to speak";
   const stateHintColor =
-    backendStatus === "offline" || backendStatus === "degraded"
-      ? "var(--app-warning-fg)"
-      : orbState === "listening"
-        ? "var(--app-highlight)"
-        : "var(--app-fg-muted)";
+    orbState === "listening"
+      ? "var(--app-highlight)"
+      : "var(--app-fg-muted)";
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-app-canvas">
@@ -685,7 +822,7 @@ export function VoiceHomeV2() {
                 className="text-[11px] tracking-widest uppercase"
                 style={{ color: modeLabelColor, opacity: 0.75 }}
               >
-                {modeLabel}
+                {getWatchLabel()}
               </span>
             </div>
           </div>
@@ -731,38 +868,89 @@ export function VoiceHomeV2() {
         {/* Messages — stack from bottom */}
         <div className="flex flex-col justify-end min-h-full px-5 pb-3 pt-1">
           <AnimatePresence initial={false}>
-            {messages.map((msg, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                transition={{ duration: 0.38, ease: "easeOut" }}
-                className={`flex mb-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className="max-w-[82%] px-4 py-2.5 text-sm leading-relaxed"
-                  style={
-                    msg.role === "user"
-                      ? {
-                          background: "var(--app-accent-softer)",
-                          border: "1px solid var(--app-accent-border-14)",
-                          color: "var(--app-fg)",
-                          borderRadius: "16px 16px 4px 16px",
-                        }
-                      : {
-                          background: "var(--app-chat-assistant-bg)",
-                          backdropFilter: "blur(16px)",
-                          border: "1px solid var(--app-accent-border-10)",
-                          color: "var(--app-accent)",
-                          borderRadius: "16px 16px 16px 4px",
-                          boxShadow: "var(--app-chat-assistant-shadow)",
-                        }
-                  }
+            {messages.map((msg, i) => {
+              if (msg.role === "document") {
+                return (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className="flex mb-3 justify-start"
+                  >
+                    <button
+                      onClick={() => navigate("/document-preview", { state: { docType: msg.docType, title: msg.title } })}
+                      className="max-w-[85%] text-left"
+                      style={{
+                        background: "rgba(255,255,255,0.7)",
+                        backdropFilter: "blur(16px)",
+                        border: "1px solid rgba(37,70,127,0.15)",
+                        borderRadius: "16px 16px 16px 4px",
+                        padding: "14px 16px",
+                        boxShadow: "0 2px 16px rgba(37,70,127,0.08)",
+                      }}
+                    >
+                      <div className="flex items-center gap-2.5 mb-2">
+                        <div
+                          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                          style={{ background: "rgba(79,195,247,0.12)", border: "1px solid rgba(79,195,247,0.25)" }}
+                        >
+                          <FileText size={15} style={{ color: "#4fc3f7" }} />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium" style={{ color: "#1a3260" }}>{msg.title}</div>
+                          <div className="text-[11px] mt-0.5" style={{ color: "rgba(37,70,127,0.45)" }}>
+                            All fields complete · Tap to review
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div
+                          className="flex items-center gap-1.5 rounded-full px-2.5 py-1"
+                          style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)" }}
+                        >
+                          <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#22c55e" }} />
+                          <span className="text-[10px] tracking-wide" style={{ color: "#16a34a" }}>Ready to export</span>
+                        </div>
+                        <span className="text-[10px] ml-auto" style={{ color: "rgba(37,70,127,0.3)" }}>Tap to open →</span>
+                      </div>
+                    </button>
+                  </motion.div>
+                );
+              }
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  transition={{ duration: 0.38, ease: "easeOut" }}
+                  className={`flex mb-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                 >
-                  {msg.text}
-                </div>
-              </motion.div>
-            ))}
+                  <div
+                    className="max-w-[82%] px-4 py-2.5 text-sm leading-relaxed"
+                    style={
+                      msg.role === "user"
+                        ? {
+                            background: "var(--app-accent-softer)",
+                            border: "1px solid var(--app-accent-border-14)",
+                            color: "var(--app-fg)",
+                            borderRadius: "16px 16px 4px 16px",
+                          }
+                        : {
+                            background: "var(--app-chat-assistant-bg)",
+                            backdropFilter: "blur(16px)",
+                            border: "1px solid var(--app-accent-border-10)",
+                            color: "var(--app-accent)",
+                            borderRadius: "16px 16px 16px 4px",
+                            boxShadow: "var(--app-chat-assistant-shadow)",
+                          }
+                    }
+                  >
+                    {msg.text}
+                  </div>
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
 
           {/* Typing indicator */}
@@ -932,46 +1120,51 @@ export function VoiceHomeV2() {
               )}
             </AnimatePresence>
 
-            {/* Mic button */}
-            <motion.button
-              whileTap={{ scale: 0.88 }}
-              disabled={isSending}
-              onClick={() => {
-                if (isSending) return;
-                if (showInput && inputText) {
-                  sendUserMessage(inputText);
-                  setShowInput(false);
-                } else {
-                  handleMicToggle();
-                }
-              }}
-              className="relative flex-shrink-0 flex items-center justify-center rounded-full transition-all duration-300"
-              style={{
-                width: showInput ? 46 : 56,
-                height: showInput ? 46 : 56,
-                background: isListening ? "var(--app-mic-bg-listening)" : "var(--app-mic-bg-idle)",
-                border: isListening
-                  ? "1px solid var(--app-mic-border-listening)"
-                  : "1px solid var(--app-mic-border-idle)",
-                boxShadow: isListening ? "var(--app-mic-shadow-listening)" : "var(--app-mic-shadow-idle)",
-                marginLeft: !showInput ? "auto" : undefined,
-                marginRight: !showInput ? "auto" : undefined,
-              }}
-            >
-              <Mic
-                size={showInput ? 18 : 20}
-                style={{ color: isListening ? "var(--app-highlight)" : "var(--app-fg-muted)" }}
-                fill={isListening ? "var(--app-mic-bg-listening)" : "none"}
-              />
-              {isListening && (
-                <motion.div
-                  className="absolute inset-0 rounded-full"
-                  style={{ border: "1px solid var(--app-accent-border-40)" }}
-                  animate={{ scale: [1, 1.35, 1], opacity: [0.5, 0, 0.5] }}
-                  transition={{ duration: 1.3, repeat: Infinity }}
+            {/* Mic button — visible only in text input mode; invisible tap target otherwise */}
+            {showInput ? (
+              <motion.button
+                whileTap={{ scale: 0.88 }}
+                disabled={isSending}
+                onClick={() => {
+                  if (isSending) return;
+                  if (inputText) {
+                    sendUserMessage(inputText);
+                    setShowInput(false);
+                  } else {
+                    handleMicToggle();
+                  }
+                }}
+                className="relative flex-shrink-0 flex items-center justify-center rounded-full transition-all duration-300"
+                style={{
+                  width: 46,
+                  height: 46,
+                  background: isListening ? "var(--app-mic-bg-listening)" : "var(--app-mic-bg-idle)",
+                  border: isListening
+                    ? "1px solid var(--app-mic-border-listening)"
+                    : "1px solid var(--app-mic-border-idle)",
+                  boxShadow: isListening ? "var(--app-mic-shadow-listening)" : "var(--app-mic-shadow-idle)",
+                }}
+              >
+                <Mic
+                  size={18}
+                  style={{ color: isListening ? "var(--app-highlight)" : "var(--app-fg-muted)" }}
                 />
-              )}
-            </motion.button>
+              </motion.button>
+            ) : (
+              <button
+                onClick={handleMicToggle}
+                aria-label="Tap to speak"
+                style={{
+                  width: 60,
+                  height: 60,
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  marginLeft: "auto",
+                  marginRight: "auto",
+                }}
+              />
+            )}
           </div>
         </div>
 
@@ -1033,12 +1226,26 @@ export function VoiceHomeV2() {
             </div>
 
             {[
-              { label: "Voyage Log", badge: "Due today", badgeBg: "rgba(245,158,11,0.15)", badgeColor: "#d97706" },
-              { label: "Engine Room Log", badge: "Overdue", badgeBg: "rgba(239,68,68,0.1)", badgeColor: "#ef4444" },
+              {
+                label: "Engine Room Log",
+                subtitle: "Afternoon Watch · 12:00–16:00",
+                badge: "Due at 16:00",
+                badgeBg: "rgba(245,158,11,0.15)",
+                badgeColor: "#d97706",
+                script: DEMO_SCRIPT_ENGINE_ROOM,
+              },
+              {
+                label: "Oil Record Book (CG-4602A)",
+                subtitle: "Section C · Sludge Collection",
+                badge: "Required daily",
+                badgeBg: "rgba(239,68,68,0.1)",
+                badgeColor: "#ef4444",
+                script: DEMO_SCRIPT_OIL_RECORD,
+              },
             ].map((doc) => (
               <button
                 key={doc.label}
-                onClick={() => setShowNav(false)}
+                onClick={() => startDemo(doc.script)}
                 className="w-full flex items-center gap-3 px-5 py-3.5"
                 style={{ borderBottom: "1px solid rgba(37,70,127,0.07)" }}
               >
@@ -1050,8 +1257,9 @@ export function VoiceHomeV2() {
                 </div>
                 <div className="flex-1 text-left">
                   <div className="text-sm" style={{ color: "rgba(37,70,127,0.85)" }}>{doc.label}</div>
+                  <div className="text-xs mt-0.5" style={{ color: "rgba(37,70,127,0.4)" }}>{doc.subtitle}</div>
                   <div
-                    className="inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px]"
+                    className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px]"
                     style={{ background: doc.badgeBg, color: doc.badgeColor }}
                   >
                     {doc.badge}
@@ -1060,30 +1268,6 @@ export function VoiceHomeV2() {
                 <ChevronRight size={13} style={{ color: "rgba(37,70,127,0.25)" }} />
               </button>
             ))}
-
-            <button
-              onClick={() => setShowNav(false)}
-              className="w-full flex items-center gap-3 px-5 py-3.5"
-              style={{ borderBottom: "1px solid rgba(37,70,127,0.07)", background: "rgba(37,70,127,0.04)" }}
-            >
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 relative"
-                style={{ background: "rgba(37,70,127,0.08)", border: "1px solid rgba(37,70,127,0.12)" }}
-              >
-                <Play size={14} style={{ color: "rgba(37,70,127,0.5)" }} />
-                <motion.div
-                  className="absolute w-2 h-2 rounded-full -top-0.5 -right-0.5"
-                  style={{ background: "#4fc3f7" }}
-                  animate={{ scale: [1, 1.3, 1], opacity: [1, 0.4, 1] }}
-                  transition={{ duration: 1.8, repeat: Infinity }}
-                />
-              </div>
-              <div className="flex-1 text-left">
-                <div className="text-sm" style={{ color: "rgba(37,70,127,0.85)" }}>Resume: Port Arrival Report</div>
-                <div className="text-xs mt-0.5" style={{ color: "rgba(37,70,127,0.4)" }}>8 of 14 fields complete</div>
-              </div>
-              <ChevronRight size={13} style={{ color: "rgba(37,70,127,0.25)" }} />
-            </button>
 
             <button
               onClick={() => { navigate("/documents"); setShowNav(false); }}

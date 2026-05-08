@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { Search, FileText, UploadCloud } from "lucide-react";
 import { motion } from "motion/react";
+import { useNavigate } from "react-router";
+import { completedDocs } from "../data/mockData";
 
 type Tab = "All" | "In Progress" | "Submitted";
 
 export function PastDocuments() {
   const [activeTab, setActiveTab] = useState<Tab>("All");
+  const navigate = useNavigate();
 
   return (
     <div className="px-5 pt-12 pb-6">
@@ -49,6 +52,52 @@ export function PastDocuments() {
           </button>
         ))}
       </div>
+
+      {completedDocs.length > 0 && (
+        <div className="mt-5">
+          <p className="text-[10px] tracking-widest uppercase mb-3" style={{ color: "var(--app-fg-faint)" }}>
+            COMPLETED DOCUMENTS
+          </p>
+          {completedDocs.map((doc, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              className="mb-2 rounded-xl px-4 py-3.5 flex items-center gap-3"
+              style={{ background: "var(--app-card-bg)", border: "1px solid var(--app-card-border)" }}
+            >
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: "rgba(79,195,247,0.1)", border: "1px solid rgba(79,195,247,0.2)" }}
+              >
+                <FileText size={14} style={{ color: "#4fc3f7" }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm truncate" style={{ color: "var(--app-fg)" }}>{doc.title}</div>
+                <div className="text-xs mt-0.5" style={{ color: "var(--app-fg-faint)" }}>
+                  Just completed · Danny · 2/E
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                <div
+                  className="rounded-full px-2 py-0.5 text-[10px]"
+                  style={{ background: "rgba(16,185,129,0.1)", color: "#34d399" }}
+                >
+                  Submitted
+                </div>
+                <button
+                  onClick={() => navigate("/document-preview", { state: { docType: doc.docType, title: doc.title } })}
+                  className="text-[10px]"
+                  style={{ color: "var(--app-accent)" }}
+                >
+                  View →
+                </button>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
       <div className="mt-5">
         <p className="text-[10px] tracking-widest uppercase mb-3" style={{ color: "var(--app-fg-faint)" }}>

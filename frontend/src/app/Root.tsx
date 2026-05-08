@@ -3,7 +3,7 @@ import { Home, Compass, Archive, User } from "lucide-react";
 import { motion } from "motion/react";
 
 const navItems = [
-  { path: "/", icon: Home, label: "Home" },
+  { path: "/app", icon: Home, label: "Home" },
   { path: "/social", icon: Compass, label: "Connect" },
   { path: "/documents", icon: Archive, label: "Past Docs" },
   { path: "/profile", icon: User, label: "You" },
@@ -12,7 +12,7 @@ const navItems = [
 export function Root() {
   const location = useLocation();
   const navigate = useNavigate();
-  const isHome = location.pathname === "/";
+  const isHome = location.pathname === "/app";
 
   return (
     <div className="flex flex-col h-screen overflow-hidden max-w-[430px] mx-auto relative bg-app-canvas text-app-fg">
