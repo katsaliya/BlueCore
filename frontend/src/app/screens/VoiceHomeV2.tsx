@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring } from "motion/react";
 import { useNavigate } from "react-router";
-import { Mic, ChevronRight, FileText, Play, Grid, Home, Compass, Archive, User, Sun, Moon } from "lucide-react";
+import { Mic, ChevronRight, FileText, Play, Grid, Globe, Compass, Archive, User, Sun, Moon, Keyboard, PanelLeft, MessageSquare } from "lucide-react";
 import { currentUser, DEMO_SCRIPT_ENGINE_ROOM, DEMO_SCRIPT_OIL_RECORD, completedDocs } from "../data/mockData";
 import { useTheme } from "../contexts/ThemeContext";
 import {
@@ -301,6 +301,60 @@ function WireframeOrb({
   return <canvas ref={canvasRef} style={{ display: "block" }} />;
 }
 
+function TypewriterText({
+  text,
+  active,
+  onTick,
+  onDone,
+}: {
+  text: string;
+  active: boolean;
+  onTick?: () => void;
+  onDone?: () => void;
+}) {
+  const [visibleLength, setVisibleLength] = useState(active ? 0 : text.length);
+  const onTickRef = useRef(onTick);
+  const onDoneRef = useRef(onDone);
+
+  useEffect(() => {
+    onTickRef.current = onTick;
+  }, [onTick]);
+
+  useEffect(() => {
+    onDoneRef.current = onDone;
+  }, [onDone]);
+
+  useEffect(() => {
+    if (!active) {
+      setVisibleLength(text.length);
+      return;
+    }
+
+    setVisibleLength(0);
+
+    if (text.length === 0) {
+      onDoneRef.current?.();
+      return;
+    }
+
+    let nextLength = 0;
+    const timer = window.setInterval(() => {
+      nextLength += 1;
+      setVisibleLength(nextLength);
+      onTickRef.current?.();
+
+      if (nextLength >= text.length) {
+        window.clearInterval(timer);
+        onDoneRef.current?.();
+      }
+    }, 18);
+
+    return () => window.clearInterval(timer);
+  }, [active, text]);
+
+  return <>{text.slice(0, visibleLength)}</>;
+}
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export function VoiceHomeV2() {
   const navigate = useNavigate();
@@ -309,10 +363,11 @@ export function VoiceHomeV2() {
 
   const [orbState, setOrbState] = useState<"idle" | "listening" | "speaking">("idle");
   const [messages, setMessages] = useState<Message[]>(() => persistedMessages);
+  const [typingAssistantIndex, setTypingAssistantIndex] = useState<number | null>(null);
   const [inputText, setInputText] = useState(() => persistedInputText);
   const [showInput, setShowInput] = useState(() => persistedShowInput);
   const [isListening, setIsListening] = useState(false);
-  const [showNav, setShowNav] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
   const [backendStatus, setBackendStatus] = useState<BackendStatus>("connecting");
   const [backendIssue, setBackendIssue] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -327,6 +382,20 @@ export function VoiceHomeV2() {
   const [completedDoc, setCompletedDoc] = useState<CompletedDemoDoc | null>(
     persistedCompletedDoc
   );
+  const hasInitializedMessageTypingRef = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const scrollToBottom = useCallback(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, []);
+
+  const handleAssistantTypeDone = useCallback((messageIndex: number) => {
+    setTypingAssistantIndex((currentIndex) =>
+      currentIndex === messageIndex ? null : currentIndex
+    );
+  }, []);
 
   const amp = useAcousticAmplitude(orbState);
   const ampRef = useRef<number>(0);
@@ -339,11 +408,30 @@ export function VoiceHomeV2() {
   }, [messages]);
 
   useEffect(() => {
+    if (!hasInitializedMessageTypingRef.current) {
+      hasInitializedMessageTypingRef.current = true;
+      return;
+    }
+
+    const lastMessageIndex = messages.length - 1;
+    const lastMessage = messages[lastMessageIndex];
+    if (lastMessage?.role === "assistant") {
+      setTypingAssistantIndex(lastMessageIndex);
+    }
+  }, [messages]);
+
+  useEffect(() => {
     persistedInputText = inputText;
   }, [inputText]);
 
   useEffect(() => {
     persistedShowInput = showInput;
+  }, [showInput]);
+
+  useEffect(() => {
+    if (showInput) {
+      inputRef.current?.focus({ preventScroll: true });
+    }
   }, [showInput]);
 
   const sampleVoiceText = useCallback(() => {
@@ -374,7 +462,7 @@ export function VoiceHomeV2() {
     demoStepRef.current = 0;
     persistedDemoScript = script;
     persistedDemoStep = 0;
-    setShowNav(false);
+    setShowSidebar(false);
     setBackendIssue("");
     setOrbState("speaking");
     setTimeout(() => {
@@ -463,6 +551,26 @@ export function VoiceHomeV2() {
     mediaStreamRef.current = null;
   }, []);
 
+  const cancelListening = useCallback(() => {
+    if (listenTimer.current) {
+      clearTimeout(listenTimer.current);
+      listenTimer.current = null;
+    }
+
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== "inactive") {
+      recorder.ondataavailable = null;
+      recorder.onstop = null;
+      recorder.stop();
+    }
+
+    mediaRecorderRef.current = null;
+    recordedChunksRef.current = [];
+    stopMediaStream();
+    setIsListening(false);
+    setOrbState("idle");
+  }, [stopMediaStream]);
+
   const markBackendError = useCallback((error: unknown) => {
     const message = getApiErrorMessage(error);
     setBackendIssue(message);
@@ -542,10 +650,8 @@ export function VoiceHomeV2() {
   }, [ctx.followUp]);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
 
   const sendUserMessage = useCallback(async (text: string) => {
     if (!text.trim()) return;
@@ -765,6 +871,10 @@ export function VoiceHomeV2() {
       ? "var(--app-highlight)"
       : "var(--app-fg-muted)";
 
+  // Input row dimensions — computed from the fixed app width so we can animate explicit px values
+  const rowWidth = Math.min(430, window.innerWidth) - 40; // app max-width minus px-5 * 2
+  const inputExpandedWidth = Math.max(46, rowWidth - 58); // row minus mic btn (46) + margin (12)
+
   return (
     <div className="flex flex-col h-full overflow-hidden bg-app-canvas relative">
 
@@ -808,8 +918,16 @@ export function VoiceHomeV2() {
           WebkitMaskImage: "linear-gradient(to bottom, black 65%, transparent 100%)",
         }}
       >
-        <div className="flex items-center justify-between px-5 pt-12 pb-5">
-          <div>
+        <div className="flex items-center px-5 pt-12 pb-5">
+          <button
+            onClick={() => setShowSidebar(true)}
+            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: "var(--app-accent-soft)", border: "1px solid var(--app-accent-border-25)" }}
+          >
+            <PanelLeft size={16} style={{ color: "var(--app-fg-subtle)" }} />
+          </button>
+
+          <div className="flex-1 flex flex-col items-center">
             <h1
               className="text-lg font-bold"
               style={{ fontFamily: "Unbounded, sans-serif", color: "var(--app-fg)" }}
@@ -826,30 +944,8 @@ export function VoiceHomeV2() {
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowNav(!showNav)}
-              className="w-9 h-9 rounded-full flex items-center justify-center"
-              style={{ background: "var(--app-accent-soft)", border: "1px solid var(--app-accent-border-25)" }}
-            >
-              <div className="flex flex-col gap-[4px]">
-                <div className="w-3 h-px rounded-full" style={{ background: "var(--app-fg-muted)" }} />
-                <div className="w-3 h-px rounded-full" style={{ background: "var(--app-fg-muted)" }} />
-                <div className="w-2 h-px rounded-full" style={{ background: "var(--app-fg-muted)" }} />
-              </div>
-            </button>
-            <button
-              onClick={toggleTheme}
-              className="w-9 h-9 rounded-full flex items-center justify-center"
-              style={{ background: "var(--app-accent-soft)", border: "1px solid var(--app-accent-border-20)" }}
-            >
-              {theme === "light" ? (
-                <Moon size={16} className="text-app-accent" />
-              ) : (
-                <Sun size={16} className="text-app-accent" />
-              )}
-            </button>
-          </div>
+
+          <div className="w-9 flex-shrink-0" />
         </div>
       </div>
 
@@ -859,14 +955,22 @@ export function VoiceHomeV2() {
         ref={scrollRef}
         style={{ scrollbarWidth: "none" }}
       >
-        {/* Top edge fade */}
-        <div
-          className="sticky top-0 h-5 pointer-events-none z-10"
-          style={{ background: "var(--app-chat-scroll-fade-top)" }}
-        />
+        {/* Header-edge blur — sticks to top; messages dissolve into it as they scroll up */}
+        <div className="sticky top-0 pointer-events-none" style={{ height: 0, zIndex: 20, position: "relative" }}>
+          <div
+            className="absolute inset-x-0 top-0 h-24"
+            style={{
+              backdropFilter: "blur(64px)",
+              WebkitBackdropFilter: "blur(64px)",
+              background: "transparent",
+              maskImage: "linear-gradient(to bottom, black 30%, transparent 100%)",
+              WebkitMaskImage: "linear-gradient(to bottom, black 30%, transparent 100%)",
+            }}
+          />
+        </div>
 
         {/* Messages — stack from bottom */}
-        <div className="flex flex-col justify-end min-h-full px-5 pb-3 pt-1">
+        <div className="flex flex-col justify-end min-h-full px-5 pt-5 pb-10">
           <AnimatePresence initial={false}>
             {messages.map((msg, i) => {
               if (msg.role === "document") {
@@ -946,84 +1050,72 @@ export function VoiceHomeV2() {
                           }
                     }
                   >
-                    {msg.text}
+                    {msg.role === "assistant" ? (
+                      <TypewriterText
+                        text={msg.text}
+                        active={i === typingAssistantIndex}
+                        onTick={scrollToBottom}
+                        onDone={() => handleAssistantTypeDone(i)}
+                      />
+                    ) : (
+                      msg.text
+                    )}
                   </div>
                 </motion.div>
               );
             })}
           </AnimatePresence>
-
-          {/* Typing indicator */}
-          <AnimatePresence>
-            {orbState === "speaking" && messages.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex mb-2"
-              >
-                <div
-                  className="px-4 py-3 flex items-center gap-1.5"
-                  style={{
-                    background: "var(--app-chat-assistant-bg)",
-                    backdropFilter: "blur(16px)",
-                    border: "1px solid var(--app-accent-border-10)",
-                    borderRadius: "16px 16px 16px 4px",
-                  }}
-                >
-                  {[0, 0.22, 0.44].map((delay, i) => (
-                    <motion.div
-                      key={i}
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{ background: "var(--app-fg-muted)" }}
-                      animate={{ y: [0, -4, 0], opacity: [0.35, 1, 0.35] }}
-                      transition={{ duration: 0.7, repeat: Infinity, delay, ease: "easeInOut" }}
-                    />
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
 
-        {/* Bottom edge fade — softens transition into the orb panel */}
-        <div
-          className="sticky bottom-0 h-8 pointer-events-none"
-          style={{ background: "var(--app-chat-scroll-fade-bottom)" }}
-        />
       </div>
 
       {/* ══════════════════════════════════════════════
           BOTTOM 1/3 — orb + input controls + nav
-          All three live inside one frosted container
+          Orb controls sit directly on the page background
       ══════════════════════════════════════════════ */}
       <div
         className="flex-shrink-0 relative z-20 flex flex-col items-center"
         style={{
-          background: "var(--app-bottom-sheet-bg)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          borderTop: "1px solid var(--app-bottom-sheet-border)",
+          background: "transparent",
+          paddingBottom: 96,
         }}
       >
-        {/* Orb + state hint */}
-        <div className="flex flex-col items-center pt-3 pb-1">
+        {/* Blur band — strong, messages dissolve into it; orb and input sit above */}
+        <div
+          className="pointer-events-none absolute inset-x-0 -top-14 h-28"
+          style={{
+            backdropFilter: "blur(64px)",
+            WebkitBackdropFilter: "blur(64px)",
+            background: "transparent",
+            maskImage: "linear-gradient(to bottom, transparent 0%, black 35%, black 65%, transparent 100%)",
+            WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 35%, black 65%, transparent 100%)",
+            zIndex: 1,
+          }}
+        />
+        {/* Orb — always in DOM so layout height is stable; opacity-only toggle prevents
+            the input row from jumping (height:0 + negative margin caused a 145px shift). */}
+        <motion.div
+          className="flex flex-col items-center pt-0 pb-0"
+          style={{
+            marginTop: -145,
+            position: "relative",
+            zIndex: 2,
+            pointerEvents: showInput ? "none" : "auto",
+          }}
+          animate={{ opacity: showInput ? 0 : 1 }}
+          transition={{ duration: 0.28, ease: "easeOut" }}
+        >
           <motion.div
-            initial={{ opacity: 0, scale: 0.6 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ opacity: 0, scale: 0.15, y: 160 }}
+            animate={{ opacity: 1, scale: 1, y: 100 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-col items-center"
           >
-            <button onClick={handleMicToggle} className="focus:outline-none relative">
-              {/* Ambient glow */}
-              <div
-                className="absolute inset-0 rounded-full pointer-events-none"
-                style={{
-                  background: "radial-gradient(circle, var(--app-accent-glow-10) 30%, transparent 70%)",
-                  filter: "blur(14px)",
-                  transform: "scale(1.3)",
-                }}
-              />
+            <button
+              onClick={handleMicToggle}
+              className="focus:outline-none relative bg-transparent border-0 p-0"
+              style={{ background: "transparent" }}
+            >
               <WireframeOrb state={orbState} ampRef={ampRef} />
 
               {/* Listening pulse rings */}
@@ -1064,117 +1156,126 @@ export function VoiceHomeV2() {
               </span>
             </motion.div>
           </motion.div>
-        </div>
+        </motion.div>
 
         {/* Input row */}
-        <div className="w-full px-5 pt-1 pb-3">
-          <div className="flex items-center gap-3">
-            {/* Switch-to-text */}
-            <AnimatePresence>
-              {!showInput && (
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  onClick={() => setShowInput(true)}
-                  className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: "var(--app-icon-button-bg)", border: "1px solid var(--app-accent-border-12)" }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <rect x="1" y="3" width="14" height="2" rx="1" fill="var(--app-fg-subtle)" />
-                    <rect x="1" y="7" width="10" height="2" rx="1" fill="var(--app-fg-faint)" />
-                    <rect x="1" y="11" width="12" height="2" rx="1" fill="var(--app-fg-faint)" />
-                  </svg>
-                </motion.button>
-              )}
-            </AnimatePresence>
+        <div className="w-full px-5 pt-1 pb-3" style={{ position: "relative", zIndex: 2 }}>
+          <div className="w-full flex items-center justify-end">
 
-            {/* Text input */}
-            <AnimatePresence>
-              {showInput && (
-                <motion.div
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: "100%" }}
-                  exit={{ opacity: 0, width: 0 }}
-                  className="flex-1 overflow-hidden"
-                >
-                  <input
-                    autoFocus
-                    className="w-full rounded-full px-4 py-3 text-sm outline-none"
-                    style={{
-                      background: "var(--app-input-pill-bg)",
-                      border: "1px solid var(--app-accent-border-15)",
-                      color: "var(--app-fg)",
-                      backdropFilter: "blur(12px)",
-                    }}
+            {/* Single persistent morphing control — always in the DOM, animates its own
+                width and border-radius. No element swapping = no projection glitches. */}
+            <motion.div
+              className="flex items-center overflow-hidden flex-shrink-0"
+              animate={{
+                width: showInput ? inputExpandedWidth : 46,
+                borderRadius: showInput ? 999 : 23,
+              }}
+              transition={{ duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] }}
+              style={{
+                height: 46,
+                background: showInput ? "transparent" : "var(--app-icon-button-bg)",
+                border: `1px solid ${showInput ? "var(--app-accent-border-15)" : "var(--app-accent-border-12)"}`,
+                cursor: showInput ? "default" : "pointer",
+              }}
+              onClick={!showInput ? () => { cancelListening(); setShowInput(true); } : undefined}
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {showInput ? (
+                  <motion.input
+                    key="text-input"
+                    ref={inputRef}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.12 }}
+                    className="w-full px-4 text-sm outline-none"
+                    style={{ background: "transparent", color: "var(--app-fg)", height: "100%", minWidth: 0 }}
                     placeholder="Type a message…"
                     value={inputText}
                     disabled={isSending}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" && !isSending) { sendUserMessage(inputText); setShowInput(false); }
-                      if (e.key === "Escape") { setShowInput(false); setInputText(""); }
+                      if (e.key === "Enter" && !isSending) { sendUserMessage(inputText); }
+                      if (e.key === "Escape") { setInputText(""); }
                     }}
                   />
+                ) : (
+                  <motion.div
+                    key="keyboard-icon"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.12 }}
+                    className="flex items-center justify-center w-full h-full"
+                  >
+                    <Keyboard size={17} style={{ color: "var(--app-fg-subtle)" }} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+
+            {/* Mic button in a collapsing wrapper — width spring is synced with the morphing
+                control so the layout stays tight throughout the animation */}
+            <AnimatePresence>
+              {showInput && (
+                <motion.div
+                  key="mic-slot"
+                  initial={{ width: 0, marginLeft: 0 }}
+                  animate={{ width: 46, marginLeft: 12 }}
+                  exit={{ width: 0, marginLeft: 0 }}
+                  transition={{ duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] }}
+                  style={{ flexShrink: 0, overflow: "hidden", display: "flex", alignItems: "center" }}
+                >
+                  <motion.button
+                    initial={{ scale: 0.6, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 2.2, opacity: 0 }}
+                    transition={{ duration: 0.28, ease: "easeOut" }}
+                    whileTap={{ scale: 0.88 }}
+                    disabled={isSending}
+                    onClick={() => { if (isSending) return; setShowInput(false); setOrbState("idle"); }}
+                    aria-label="Switch to voice"
+                    className="flex items-center justify-center rounded-full flex-shrink-0"
+                    style={{
+                      width: 46,
+                      height: 46,
+                      background: "var(--app-mic-bg-idle)",
+                      border: "1px solid var(--app-mic-border-idle)",
+                      boxShadow: "var(--app-mic-shadow-idle)",
+                    }}
+                  >
+                    <Mic size={18} style={{ color: "var(--app-fg-muted)" }} />
+                  </motion.button>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Mic button — visible only in text input mode; invisible tap target otherwise */}
-            {showInput ? (
-              <motion.button
-                whileTap={{ scale: 0.88 }}
-                disabled={isSending}
-                onClick={() => {
-                  if (isSending) return;
-                  if (inputText) {
-                    sendUserMessage(inputText);
-                    setShowInput(false);
-                  } else {
-                    handleMicToggle();
-                  }
-                }}
-                className="relative flex-shrink-0 flex items-center justify-center rounded-full transition-all duration-300"
-                style={{
-                  width: 46,
-                  height: 46,
-                  background: isListening ? "var(--app-mic-bg-listening)" : "var(--app-mic-bg-idle)",
-                  border: isListening
-                    ? "1px solid var(--app-mic-border-listening)"
-                    : "1px solid var(--app-mic-border-idle)",
-                  boxShadow: isListening ? "var(--app-mic-shadow-listening)" : "var(--app-mic-shadow-idle)",
-                }}
-              >
-                <Mic
-                  size={18}
-                  style={{ color: isListening ? "var(--app-highlight)" : "var(--app-fg-muted)" }}
-                />
-              </motion.button>
-            ) : (
-              <button
-                onClick={handleMicToggle}
-                aria-label="Tap to speak"
-                style={{
-                  width: 60,
-                  height: 60,
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  marginLeft: "auto",
-                  marginRight: "auto",
-                }}
-              />
-            )}
           </div>
         </div>
 
-        {/* Nav bar */}
-        <nav className="w-full px-4 pb-6 pt-3 bg-app-nav border-t border-app-nav-border">
+        {/* Floating nav bar — fixed, glass effect */}
+        <nav
+          style={{
+            position: "fixed",
+            bottom: 24,
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "calc(100% - 48px)",
+            zIndex: 50,
+            borderRadius: 20,
+            background: theme === "light" ? "rgba(255,255,255,0.18)" : "rgba(15,25,45,0.50)",
+            backdropFilter: "blur(24px)",
+            WebkitBackdropFilter: "blur(24px)",
+            border: `1px solid rgba(${theme === "light" ? "37,70,127" : "255,255,255"},0.06)`,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.10)",
+            padding: "8px 16px",
+          }}
+        >
           <div className="flex items-center justify-around">
             {[
-              { path: "/home-v2", icon: Home, label: "Home" },
-              { path: "/social", icon: Compass, label: "Connect" },
+              { path: "/home-v2", icon: Globe, label: "Core" },
               { path: "/documents", icon: Archive, label: "Past Docs" },
+              { path: "/social", icon: Compass, label: "Connect" },
               { path: "/profile", icon: User, label: "You" },
             ].map((item) => {
               const isActive = item.path === "/home-v2";
@@ -1202,87 +1303,167 @@ export function VoiceHomeV2() {
         </nav>
       </div>
 
-      {/* ── Document launcher dropdown */}
+      {/* ── Sidebar */}
       <AnimatePresence>
-        {showNav && (
-          <motion.div
-            initial={{ opacity: 0, y: -14 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -14 }}
-            transition={{ duration: 0.22 }}
-            className="absolute top-32 left-4 right-4 z-50 rounded-2xl overflow-hidden"
-            style={{
-              background: "rgba(225,236,255,0.92)",
-              backdropFilter: "blur(24px)",
-              WebkitBackdropFilter: "blur(24px)",
-              border: "1px solid rgba(37,70,127,0.12)",
-              boxShadow: "0 8px 40px rgba(37,70,127,0.14)",
-            }}
-          >
-            <div className="px-5 pt-4 pb-2">
-              <span className="text-[10px] tracking-widest uppercase" style={{ color: "rgba(37,70,127,0.4)" }}>
-                START A DOCUMENT
-              </span>
-            </div>
+        {showSidebar && (
+          <>
+            <motion.div
+              className="absolute inset-0 z-40"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.22 }}
+              onClick={() => setShowSidebar(false)}
+              style={{ background: "rgba(0,0,0,0.28)" }}
+            />
 
-            {[
-              {
-                label: "Engine Room Log",
-                subtitle: "Afternoon Watch · 12:00–16:00",
-                badge: "Due at 16:00",
-                badgeBg: "rgba(245,158,11,0.15)",
-                badgeColor: "#d97706",
-                script: DEMO_SCRIPT_ENGINE_ROOM,
-              },
-              {
-                label: "Oil Record Book (CG-4602A)",
-                subtitle: "Section C · Sludge Collection",
-                badge: "Required daily",
-                badgeBg: "rgba(239,68,68,0.1)",
-                badgeColor: "#ef4444",
-                script: DEMO_SCRIPT_OIL_RECORD,
-              },
-            ].map((doc) => (
-              <button
-                key={doc.label}
-                onClick={() => startDemo(doc.script)}
-                className="w-full flex items-center gap-3 px-5 py-3.5"
-                style={{ borderBottom: "1px solid rgba(37,70,127,0.07)" }}
-              >
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: "rgba(37,70,127,0.08)", border: "1px solid rgba(37,70,127,0.12)" }}
-                >
-                  <FileText size={14} style={{ color: "rgba(37,70,127,0.5)" }} />
-                </div>
-                <div className="flex-1 text-left">
-                  <div className="text-sm" style={{ color: "rgba(37,70,127,0.85)" }}>{doc.label}</div>
-                  <div className="text-xs mt-0.5" style={{ color: "rgba(37,70,127,0.4)" }}>{doc.subtitle}</div>
-                  <div
-                    className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px]"
-                    style={{ background: doc.badgeBg, color: doc.badgeColor }}
-                  >
-                    {doc.badge}
-                  </div>
-                </div>
-                <ChevronRight size={13} style={{ color: "rgba(37,70,127,0.25)" }} />
-              </button>
-            ))}
-
-            <button
-              onClick={() => { navigate("/documents"); setShowNav(false); }}
-              className="w-full flex items-center gap-3 px-5 py-4"
+            <motion.div
+              className="absolute top-0 left-0 bottom-0 z-50 flex flex-col"
+              style={{
+                width: "82%",
+                background: theme === "light" ? "rgba(232,240,255,0.97)" : "rgba(8,18,38,0.97)",
+                backdropFilter: "blur(32px)",
+                WebkitBackdropFilter: "blur(32px)",
+                borderRight: `1px solid rgba(${theme === "light" ? "37,70,127" : "255,255,255"},0.08)`,
+                boxShadow: "6px 0 48px rgba(0,0,0,0.22)",
+              }}
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: "rgba(37,70,127,0.08)", border: "1px solid rgba(37,70,127,0.12)" }}
-              >
-                <Grid size={14} style={{ color: "rgba(37,70,127,0.4)" }} />
+              {/* Sidebar title */}
+              <div className="pt-14 px-5 pb-5" style={{ borderBottom: `1px solid rgba(${theme === "light" ? "37,70,127" : "255,255,255"},0.07)` }}>
+                <h2
+                  className="text-base font-bold"
+                  style={{ fontFamily: "Unbounded, sans-serif", color: "var(--app-fg)" }}
+                >
+                  BlueCore
+                </h2>
               </div>
-              <div className="text-sm" style={{ color: "rgba(37,70,127,0.6)" }}>Browse all documents</div>
-              <ChevronRight size={13} className="ml-auto" style={{ color: "rgba(37,70,127,0.2)" }} />
-            </button>
-          </motion.div>
+
+              <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+                {/* Document launcher */}
+                <div className="px-5 pt-5 pb-2">
+                  <p className="text-[10px] tracking-widest uppercase" style={{ color: "var(--app-fg-faint)" }}>
+                    Start a Document
+                  </p>
+                </div>
+
+                {[
+                  {
+                    label: "Engine Room Log",
+                    subtitle: "Afternoon Watch · 12:00–16:00",
+                    badge: "Due at 16:00",
+                    badgeBg: "rgba(245,158,11,0.15)",
+                    badgeColor: "#d97706",
+                    script: DEMO_SCRIPT_ENGINE_ROOM,
+                  },
+                  {
+                    label: "Oil Record Book (CG-4602A)",
+                    subtitle: "Section C · Sludge Collection",
+                    badge: "Required daily",
+                    badgeBg: "rgba(239,68,68,0.1)",
+                    badgeColor: "#ef4444",
+                    script: DEMO_SCRIPT_OIL_RECORD,
+                  },
+                ].map((doc) => (
+                  <button
+                    key={doc.label}
+                    onClick={() => { startDemo(doc.script); setShowSidebar(false); }}
+                    className="w-full flex items-center gap-3 px-5 py-3.5"
+                    style={{ borderBottom: `1px solid rgba(${theme === "light" ? "37,70,127" : "255,255,255"},0.05)` }}
+                  >
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{ background: "var(--app-accent-soft)", border: "1px solid var(--app-accent-border-20)" }}
+                    >
+                      <FileText size={14} style={{ color: "var(--app-accent)" }} />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <div className="text-sm" style={{ color: "var(--app-fg)" }}>{doc.label}</div>
+                      <div className="text-xs mt-0.5" style={{ color: "var(--app-fg-faint)" }}>{doc.subtitle}</div>
+                      <div
+                        className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px]"
+                        style={{ background: doc.badgeBg, color: doc.badgeColor }}
+                      >
+                        {doc.badge}
+                      </div>
+                    </div>
+                    <ChevronRight size={13} style={{ color: "var(--app-fg-faint)" }} />
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => { navigate("/documents"); setShowSidebar(false); }}
+                  className="w-full flex items-center gap-3 px-5 py-3.5 mb-5"
+                  style={{ borderBottom: `1px solid rgba(${theme === "light" ? "37,70,127" : "255,255,255"},0.07)` }}
+                >
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ background: "var(--app-surface-hover)", border: "1px solid var(--app-card-border)" }}
+                  >
+                    <Grid size={14} style={{ color: "var(--app-fg-faint)" }} />
+                  </div>
+                  <div className="text-sm" style={{ color: "var(--app-fg-subtle)" }}>Browse all documents</div>
+                  <ChevronRight size={13} className="ml-auto" style={{ color: "var(--app-fg-faint)" }} />
+                </button>
+
+                {/* Past conversations */}
+                <div className="px-5 pt-1 pb-2">
+                  <p className="text-[10px] tracking-widest uppercase" style={{ color: "var(--app-fg-faint)" }}>
+                    Past Conversations
+                  </p>
+                </div>
+
+                {[
+                  { summary: "Engine room handover notes", time: "Today, 08:14" },
+                  { summary: "Port arrival pre-checks", time: "Yesterday" },
+                  { summary: "Fatigue & wellbeing check-in", time: "2 days ago" },
+                  { summary: "Oil Record Book section C", time: "3 days ago" },
+                  { summary: "Stress levels after cargo run", time: "4 days ago" },
+                ].map((chat) => (
+                  <button
+                    key={chat.summary}
+                    className="w-full flex items-center gap-3 px-5 py-3"
+                    style={{ borderBottom: `1px solid rgba(${theme === "light" ? "37,70,127" : "255,255,255"},0.04)` }}
+                  >
+                    <div
+                      className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{ background: "var(--app-surface-hover)", border: "1px solid var(--app-card-border)" }}
+                    >
+                      <MessageSquare size={12} style={{ color: "var(--app-fg-faint)" }} />
+                    </div>
+                    <div className="flex-1 text-left min-w-0">
+                      <div className="text-sm truncate" style={{ color: "var(--app-fg-subtle)" }}>{chat.summary}</div>
+                      <div className="text-[10px] mt-0.5" style={{ color: "var(--app-fg-faint)" }}>{chat.time}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Theme toggle */}
+              <div
+                className="px-5 py-4 flex items-center justify-between"
+                style={{ borderTop: `1px solid rgba(${theme === "light" ? "37,70,127" : "255,255,255"},0.07)` }}
+              >
+                <span className="text-sm" style={{ color: "var(--app-fg-subtle)" }}>
+                  {theme === "light" ? "Light Mode" : "Dark Mode"}
+                </span>
+                <button
+                  onClick={toggleTheme}
+                  className="w-9 h-9 rounded-full flex items-center justify-center"
+                  style={{ background: "var(--app-accent-soft)", border: "1px solid var(--app-accent-border-20)" }}
+                >
+                  {theme === "light" ? (
+                    <Moon size={16} style={{ color: "var(--app-accent)" }} />
+                  ) : (
+                    <Sun size={16} style={{ color: "var(--app-accent)" }} />
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>

@@ -1,32 +1,29 @@
 import { motion } from "motion/react";
 import { currentUser } from "../data/mockData";
-import { useNavigate } from "react-router";
-import { ChevronLeft, Ship, MapPin, Star, Bell, Shield, Sliders, ChevronRight } from "lucide-react";
+import { Ship, MapPin, Star, Bell, Shield, Sliders, ChevronRight } from "lucide-react";
+
+const profileHeroImage =
+  "https://images.unsplash.com/photo-1751563696363-abb675273f59?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxvY2VhbiUyMHN1bnNldCUyMGhvcml6b24lMjBwZWFjZWZ1bHxlbnwxfHx8fDE3NzI3NTQwNjZ8MA&ixlib=rb-4.1.0&q=80&w=800";
 
 export function Profile() {
-  const navigate = useNavigate();
-
   return (
     <div className="pb-8">
-      {/* Header */}
-      <div className="relative overflow-hidden">
+      <div className="relative h-48 overflow-hidden">
         <img
-          src="https://images.unsplash.com/photo-1751563696363-abb675273f59?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxvY2VhbiUyMHN1bnNldCUyMGhvcml6b24lMjBwZWFjZWZ1bHxlbnwxfHx8fDE3NzI3NTQwNjZ8MA&ixlib=rb-4.1.0&q=80&w=800"
+          src={profileHeroImage}
           alt="ocean"
-          className="w-full h-48 object-cover opacity-40"
+          className="h-full w-full object-cover opacity-60"
         />
         <div
           className="absolute inset-0"
           style={{
-            background: "linear-gradient(to bottom, transparent, var(--app-screen-tint))",
+            background:
+              "linear-gradient(to bottom, transparent 0%, var(--app-screen-tint))",
           }}
         />
-        <button
-          onClick={() => navigate("/")}
-          className="absolute top-4 left-4 w-9 h-9 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center"
-        >
-          <ChevronLeft size={18} className="text-white" />
-        </button>
+        <div className="absolute left-5 right-5 top-12">
+          <h2 className="text-2xl" style={{ color: "var(--app-fg)" }}>Profile</h2>
+        </div>
       </div>
 
       {/* Avatar + info */}

@@ -16,9 +16,9 @@
   --app-highlight: #4fc3f7;
 
   --app-fg: #1a3260;
-  --app-fg-muted: rgba(37, 70, 127, 0.4);
-  --app-fg-subtle: rgba(37, 70, 127, 0.5);
-  --app-fg-faint: rgba(37, 70, 127, 0.3);
+  --app-fg-muted: rgba(37, 70, 127, 0.68);
+  --app-fg-subtle: rgba(37, 70, 127, 0.78);
+  --app-fg-faint: rgba(37, 70, 127, 0.55);
 
   /* Profile / deeper content tint */
   --app-screen-tint: #e1ecff;
@@ -149,9 +149,9 @@
   --app-highlight: #4fc3f7;
 
   --app-fg: #ffffff;
-  --app-fg-muted: rgba(255, 255, 255, 0.4);
-  --app-fg-subtle: rgba(255, 255, 255, 0.5);
-  --app-fg-faint: rgba(255, 255, 255, 0.3);
+  --app-fg-muted: rgba(255, 255, 255, 0.68);
+  --app-fg-subtle: rgba(255, 255, 255, 0.78);
+  --app-fg-faint: rgba(255, 255, 255, 0.55);
 
   --app-screen-tint: #0a0f1e;
 
