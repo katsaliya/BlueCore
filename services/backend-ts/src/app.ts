@@ -31,13 +31,13 @@ app.use(
 );
 app.use(express.json());
 
+app.use(documentsRouter);
 app.use(healthRouter);
 app.use(dependenciesRouter);
 app.use(vectorAiRouter);
 app.use(vectorAiBridgeRouter);
 app.use(authRouter);
 app.use(sessionRouter);
-app.use(documentsRouter);
 app.listen(env.PORT, env.HOST, () => {
   console.log(`GreenWatch backend listening on http://${env.HOST}:${env.PORT}`);
 });

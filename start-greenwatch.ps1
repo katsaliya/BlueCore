@@ -1,6 +1,6 @@
-$root = "C:\Users\arman\Desktop\GreenWatch"
+$root = "C:\Users\arman\Desktop\BlueCore\BlueCore"
 
-Write-Host "Starting GreenWatch..." -ForegroundColor Cyan
+Write-Host "Starting BlueCore.." -ForegroundColor Cyan
 
 $sqlitePath = "$root\services\backend-ts\data\greenwatch.db"
 if (Test-Path $sqlitePath) {
@@ -28,9 +28,6 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd `"$root\servic
 
 Write-Host "Starting voice-bridge-py on 50055..." -ForegroundColor Yellow
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd `"$root\services\voice-bridge-py`"; .\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 50055 --reload"
-
-Write-Host "Starting ui-test on 5173..." -ForegroundColor Yellow
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd `"$root\services\ui-test`"; npm run dev"
 
 Write-Host "GreenWatch startup commands launched." -ForegroundColor Green
 Write-Host "Ports:" -ForegroundColor Cyan
