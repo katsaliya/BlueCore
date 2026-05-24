@@ -1,0 +1,765 @@
+BlueCore Frontend Integration Guide
+==================================
+
+Purpose
+-------
+This document is for the frontend teammate. It explains how the current BlueCore backend is structured, which routes are backed by SQLite, what each route returns, and how the frontend should use them.
+
+The goal is to make it easy to wire the frontend to the backend without needing to inspect backend code.
+
+Backend Base URL
+----------------
+http://127.0.0.1:8080
+
+Main Idea
+---------
+BlueCore currently has two major backend flows:
+
+1. Regular chat/session flow
+   - session-based
+   - can include text and audio
+   - stores sessions/messages in SQLite
+   - older assistant chat flow
+
+2. Document filling flow
+   - document-template driven
+   - stores templates, document runs, field values, and generated outputs in SQLite
+   - this is the main flow for paperwork automation
+
+For the new frontend screens, the document flow is the most important part.
+
+==================================
+1. WHAT IS STORED IN SQLITE
+==================================
+
+The frontend does not talk to SQLite directly.
+It talks to the backend API, and the backend reads/writes SQLite.
+
+The important SQLite-backed entities are:
+
+1. users
+   - local usernames/passwords
+   - display names
+   - roles
+
+2. sessions
+   - regular conversation sessions
+   - user-owned
+
+3. messages
+   - text messages in session chat history
+   - role = user or assistant
+
+4. audio_records
+   - metadata for saved input/reply audio
+   - audio files themselves are stored on disk
+   - metadata is stored in SQLite
+
+5. document_templates
+   - definitions of form types
+   - current placeholder template:
+     - code = shift-log-v1
+     - name = Placeholder Shift Log
+
+6. document_runs
+   - one actual form instance for a user
+   - example: one shift log draft
+
+7. document_field_values
+   - the filled values for each field in a document run
+
+8. document_outputs
+   - generated output files such as PDFs
+   - metadata in SQLite
+   - file itself on disk
+
+Frontend should think of the backend as the single source of truth.
+Do not mirror SQLite logic in the frontend.
+Always fetch current state from the backend.
+
+==================================
+2. AUTHENTICATION
+==================================
+
+Most useful routes require:
+
+Authorization: Bearer <token>
+
+The frontend should store the JWT token after login/register and send it in the Authorization header.
+
+Example header:
+Authorization: Bearer eyJhbGciOi...
+
+Routes:
+
+POST /auth/register
+POST /auth/login
+GET /auth/me
+
+Recommended frontend flow:
+- login screen posts to /auth/login
+- save token in app state/local storage
+- on app load, call /auth/me with token
+- if /auth/me fails, treat user as logged out
+
+Example request:
+
+POST /auth/login
+Content-Type: application/json
+
+{
+  "username": "sailor1",
+  "password": "pass1234"
+}
+
+Example response:
+
+{
+  "ok": true,
+  "user": {
+    "id": 1,
+    "username": "sailor1",
+    "displayName": "Demo Sailor",
+    "role": "sailor"
+  },
+  "token": "..."
+}
+
+==================================
+3. DOCUMENT FLOW: OVERVIEW
+==================================
+
+The document workflow is currently the main backend flow for paperwork automation.
+
+High-level flow:
+1. frontend gets available templates
+2. frontend creates a document run
+3. frontend loads document state
+4. user answers questions by text or voice
+5. backend fills fields in SQLite
+6. frontend shows review summary
+7. frontend requests PDF export/download
+
+Important point:
+The frontend does not fill the form itself.
+The backend owns the document state.
+
+The frontend should mostly:
+- display state returned by the backend
+- send user answers
+- display next question
+- display progress
+- show review summary
+- allow PDF download
+
+==================================
+4. DOCUMENT TEMPLATE ROUTE
+==================================
+
+GET /document-templates
+
+Purpose:
+- get available document templates
+- use this to populate a Start New Document page
+
+Headers:
+Authorization: Bearer <token>
+
+Example response:
+
+{
+  "ok": true,
+  "templates": [
+    {
+      "id": 1,
+      "code": "shift-log-v1",
+      "name": "Placeholder Shift Log",
+      "description": "A placeholder shift log template that can be replaced later with a real maritime form.",
+      "schemaJson": "{...}",
+      "createdAt": "2026-..."
+    }
+  ]
+}
+
+Frontend use:
+- template selector cards/list
+- user clicks template to create a new document run
+
+==================================
+5. CREATE DOCUMENT RUN
+==================================
+
+POST /documents
+
+Purpose:
+- create a new document instance from template
+
+Headers:
+Authorization: Bearer <token>
+Content-Type: application/json
+
+Body:
+{
+  "templateCode": "shift-log-v1",
+  "title": "Shift Log Draft",
+  "sessionId": "session-..."   // optional
+}
+
+Notes:
+- sessionId can be null or omitted if the document is not tied to a chat session
+- title is a display name for the document run
+
+Example response:
+{
+  "ok": true,
+  "document": {
+    "id": 1,
+    "userId": 1,
+    "sessionId": null,
+    "templateId": 1,
+    "status": "collecting",
+    "title": "Shift Log Draft",
+    "createdAt": "2026-...",
+    "completedAt": null
+  }
+}
+
+Frontend use:
+- after creating, immediately navigate to document detail page
+- use document.id for all later document routes
+
+==================================
+6. LIST USER DOCUMENTS
+==================================
+
+GET /documents
+
+Purpose:
+- list all documents belonging to the current logged-in user
+
+Headers:
+Authorization: Bearer <token>
+
+Example response:
+{
+  "ok": true,
+  "documents": [
+    {
+      "id": 1,
+      "userId": 1,
+      "sessionId": null,
+      "templateId": 1,
+      "status": "collecting",
+      "title": "Shift Log Draft",
+      "createdAt": "2026-...",
+      "completedAt": null
+    }
+  ]
+}
+
+Frontend use:
+- My Documents screen
+- resume old document runs
+- show status badges like collecting / ready_for_review / finalized
+
+==================================
+7. DOCUMENT DETAIL: MOST IMPORTANT ROUTE
+==================================
+
+GET /documents/:id
+
+This is the main route for the document UI.
+
+Headers:
+Authorization: Bearer <token>
+
+Example response shape:
+
+{
+  "ok": true,
+  "document": {
+    "id": 1,
+    "userId": 1,
+    "sessionId": null,
+    "templateId": 1,
+    "status": "collecting",
+    "title": "Shift Log Draft",
+    "createdAt": "2026-...",
+    "completedAt": null
+  },
+  "template": {
+    "id": 1,
+    "code": "shift-log-v1",
+    "name": "Placeholder Shift Log",
+    "description": "..."
+  },
+  "fields": [
+    {
+      "name": "vessel_name",
+      "label": "Vessel Name",
+      "type": "text",
+      "required": true,
+      "prompt": "What is the vessel name?",
+      "value": "BlueCore Voyager",
+      "source": "chat",
+      "confidence": 1,
+      "updatedAt": "2026-..."
+    }
+  ],
+  "missingRequiredFields": [
+    "shift_date",
+    "shift_start",
+    "shift_end",
+    "task_summary"
+  ],
+  "completionPercent": 43,
+  "currentField": {
+    "name": "shift_date",
+    "label": "Shift Date",
+    "type": "date",
+    "required": true,
+    "prompt": "What is the shift date?"
+  },
+  "nextQuestion": "What is the shift date?",
+  "isReadyForPdf": false,
+  "readyForReview": false,
+  "reviewSummary": [
+    {
+      "label": "Vessel Name",
+      "value": "BlueCore Voyager",
+      "required": true
+    }
+  ],
+  "nextAction": "answer_next_question",
+  "outputs": [
+    {
+      "id": 1,
+      "documentRunId": 1,
+      "outputType": "pdf",
+      "outputMode": "draft",
+      "mimeType": "application/pdf",
+      "filePath": "C:\\...\\file.pdf",
+      "createdAt": "2026-..."
+    }
+  ]
+}
+
+How the frontend should use this route:
+
+A. document
+- basic metadata
+- use title/status in page header
+
+B. template
+- useful for display name and type label
+
+C. fields
+- render current filled state
+- field list can power a side panel or summary screen
+
+D. missingRequiredFields
+- useful for warnings/progress
+
+E. completionPercent
+- progress bar
+
+F. currentField
+- this is the field the backend wants next
+- use this to drive the chat prompt / form prompt
+
+G. nextQuestion
+- render this as the next assistant question in the document chat
+
+H. isReadyForPdf
+- if true, document has all required fields
+
+I. readyForReview
+- frontend should switch to preview/review mode when this becomes true
+
+J. reviewSummary
+- render the user-facing review/glance page from this
+
+K. outputs
+- previously generated PDFs or future outputs
+- show download buttons from these
+
+Important frontend rule:
+This route should be re-fetched after each answer, or rely on the updated state returned by answer routes.
+Do not invent field order or next question logic in the frontend.
+
+==================================
+8. DIRECT FIELD EDITING
+==================================
+
+POST /documents/:id/fields
+
+Purpose:
+- manually set or correct one field
+
+Headers:
+Authorization: Bearer <token>
+Content-Type: application/json
+
+Body:
+{
+  "fieldName": "worker_name",
+  "fieldValue": "Arman",
+  "source": "manual",
+  "confidence": 1
+}
+
+Example response:
+- same document state structure as GET /documents/:id
+
+Frontend use:
+- correction/edit screen
+- manual override UI
+- edit button on review page
+
+==================================
+9. TEXT-BASED DOCUMENT INTERVIEW
+==================================
+
+POST /documents/:id/respond
+
+Purpose:
+- send the user's answer in chat style
+- backend fills the current missing required field
+
+Headers:
+Authorization: Bearer <token>
+Content-Type: application/json
+
+Body:
+{
+  "text": "BlueCore Voyager"
+}
+
+Response:
+{
+  "ok": true,
+  "transcript": null,
+  ...same document state shape as GET /documents/:id...
+}
+
+Backend behavior:
+- reads current missing field from SQLite-backed document state
+- stores this answer into that field
+- recomputes missing fields
+- returns updated state
+
+Frontend use:
+- main text document chat input
+- after user sends answer, render returned state
+- show updated nextQuestion/currentField
+
+Important:
+This route currently behaves like a guided interview, not a full freeform LLM extraction engine.
+One answer typically fills the current requested field.
+
+==================================
+10. VOICE-BASED DOCUMENT INTERVIEW
+==================================
+
+POST /documents/:id/respond/audio
+
+Purpose:
+- upload recorded audio for the current document question
+- backend transcribes audio
+- backend fills next missing field using transcript
+
+Headers:
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+
+Form fields:
+- file
+
+Response:
+{
+  "ok": true,
+  "transcript": "spoken answer text",
+  "transcriptLanguage": "en",
+  "transcriptDuration": 4.21,
+  ...same document state shape as GET /documents/:id...
+}
+
+Frontend use:
+- voice answer button
+- microphone recorder
+- upload blob/file to backend
+- optionally show transcript in UI
+
+Important:
+This route depends on the voice bridge service.
+If voice bridge is down, this route will fail.
+
+==================================
+11. REVIEW STAGE
+==================================
+
+Current backend versions may vary slightly, but the intended review flow is:
+
+- once all required fields are filled
+- backend returns:
+  - isReadyForPdf = true
+  - readyForReview = true
+  - reviewSummary populated
+  - nextQuestion = null
+
+Frontend behavior when readyForReview becomes true:
+- stop showing question-answer mode
+- show a review page or review panel
+- render reviewSummary clearly
+- ask user to confirm correctness before final export
+
+Even if a dedicated confirm route is not available in the running backend version, the frontend should still show a review stage before requesting final PDF generation.
+
+==================================
+12. PDF EXPORT
+==================================
+
+POST /documents/:id/export/pdf
+
+Purpose:
+- generate PDF for the current document
+
+Headers:
+Authorization: Bearer <token>
+Content-Type: application/json
+
+Body:
+{
+  "mode": "draft"
+}
+
+or
+
+{
+  "mode": "final"
+}
+
+Optional:
+{
+  "mode": "draft",
+  "forceRegenerate": true
+}
+
+Response:
+{
+  "ok": true,
+  "reused": false,
+  "output": {
+    "id": 2,
+    "documentRunId": 1,
+    "outputType": "pdf",
+    "outputMode": "draft",
+    "mimeType": "application/pdf",
+    "filePath": "C:\\...\\file.pdf",
+    "createdAt": "2026-..."
+  }
+}
+
+Frontend use:
+- Generate draft PDF button
+- Generate final PDF button after review
+- save output.id for download
+
+Practical frontend guidance:
+- use draft export for preview/testing if needed
+- use final export only after review stage
+
+==================================
+13. PDF DOWNLOAD
+==================================
+
+GET /document-outputs/:outputId/download
+
+Purpose:
+- download the generated PDF
+
+Headers:
+Authorization: Bearer <token>
+
+Response:
+- binary file
+
+Frontend use:
+- download/open generated PDF
+- use outputId from export response or from outputs array in document detail
+
+==================================
+14. REGULAR SESSION / CHAT FLOW
+==================================
+
+These already existed and may already be wired in the frontend:
+
+GET /sessions
+POST /session/start
+GET /session/history?sessionId=<sessionId>
+POST /session/message
+POST /session/message/audio
+POST /session/message/audio/reply-audio
+
+These are separate from the document flow.
+
+Use these for:
+- regular assistant chat
+- session-based messages
+- old voice reply flow
+
+Do not confuse session chat with document chat.
+The new document screens should mostly use the /documents routes.
+
+==================================
+15. HEALTH / DEPENDENCY CHECKS
+==================================
+
+GET /health
+GET /health/dependencies
+
+Useful for frontend debug/admin/developer screens.
+
+If voice/document audio fails, checking backend dependency health can help.
+
+==================================
+16. RECOMMENDED FRONTEND SCREEN STRUCTURE
+==================================
+
+Suggested screens/components:
+
+1. Auth screens
+   - Login
+   - Register
+
+2. Document template picker
+   - uses GET /document-templates
+   - starts new run with POST /documents
+
+3. My documents screen
+   - uses GET /documents
+
+4. Document detail screen
+   - uses GET /documents/:id
+   - shows progress
+   - shows current question
+   - shows fields and values
+   - supports text answer and voice answer
+
+5. Review screen / review panel
+   - driven by reviewSummary from GET /documents/:id
+   - shown when readyForReview = true
+
+6. Output/download area
+   - driven by outputs from GET /documents/:id
+   - uses GET /document-outputs/:outputId/download
+
+==================================
+17. RECOMMENDED DOCUMENT UI FLOW
+==================================
+
+Recommended frontend flow:
+
+1. Login
+2. Get templates
+3. Create document run
+4. Load GET /documents/:id
+5. Show nextQuestion/currentField
+6. User answers through:
+   - POST /documents/:id/respond
+   or
+   - POST /documents/:id/respond/audio
+7. Update UI from returned document state
+8. When readyForReview = true:
+   - show reviewSummary
+   - allow corrections with POST /documents/:id/fields
+9. Export PDF with POST /documents/:id/export/pdf
+10. Download via GET /document-outputs/:outputId/download
+
+==================================
+18. CURRENT PLACEHOLDER TEMPLATE
+==================================
+
+Template code:
+shift-log-v1
+
+Template name:
+Placeholder Shift Log
+
+Current required fields:
+- vessel_name
+- worker_name
+- role
+- shift_date
+- shift_start
+- shift_end
+- task_summary
+
+Current optional fields:
+- incidents_observed
+- equipment_status
+- fatigue_level
+- additional_notes
+
+==================================
+19. IMPORTANT IMPLEMENTATION NOTES
+==================================
+
+1. Ownership is enforced
+- sessions, documents, outputs belong to one user
+- unauthorized access usually returns 404
+
+2. The frontend should not assume a field order from hardcoded UI logic
+- use what backend returns
+- especially currentField and nextQuestion
+
+3. The document detail endpoint is the primary state source
+- frontend should rely heavily on GET /documents/:id or equivalent returned state payloads
+
+4. Voice route depends on voice bridge
+- if unavailable, voice answer will fail even if regular text routes work
+
+5. SQLite is backend-internal
+- frontend does not connect to SQLite directly
+- frontend always talks to Express routes
+- backend persists everything into SQLite
+
+==================================
+20. SIMPLE ENDPOINT MAP
+==================================
+
+Auth:
+- POST /auth/register
+- POST /auth/login
+- GET /auth/me
+
+Document templates:
+- GET /document-templates
+
+Document runs:
+- POST /documents
+- GET /documents
+- GET /documents/:id
+
+Document filling:
+- POST /documents/:id/fields
+- POST /documents/:id/respond
+- POST /documents/:id/respond/audio
+
+Document output:
+- POST /documents/:id/export/pdf
+- GET /document-outputs/:outputId/download
+
+Session/chat:
+- GET /sessions
+- POST /session/start
+- GET /session/history
+- POST /session/message
+- POST /session/message/audio
+- POST /session/message/audio/reply-audio
+
+Health:
+- GET /health
+- GET /health/dependencies
+
+End of guide.
