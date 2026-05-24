@@ -1,0 +1,372 @@
+BlueCore Terminal Test Guide
+===========================
+
+Purpose
+-------
+This file contains terminal commands to test the main BlueCore backend flows end-to-end from PowerShell.
+
+What this verifies
+------------------
+1. Infrastructure health
+2. Authentication
+3. Regular AI chat/session flow
+4. Voice bridge
+5. Document template/document creation flow
+6. Document filling by text
+7. Document filling by voice
+8. Review state
+9. PDF export
+10. PDF download
+
+Assumptions
+-----------
+- Backend is running on: http://127.0.0.1:8080
+- Ollama is running on: http://127.0.0.1:11434
+- VectorAI bridge is running on: http://127.0.0.1:50054
+- Voice bridge is running on: http://127.0.0.1:50055
+- VectorAI Local UI is available at: http://127.0.0.1:6575
+- You already have a user:
+  username = sailor1
+  password = pass1234
+
+- Test audio file path:
+  C:\Users\arman\Desktop\BlueCore\BlueCore\voice test\inputs\test3.m4a
+
+Use order
+---------
+Run the sections in order:
+A -> B -> C -> D -> E -> F -> G -> H -> I -> J
+
+==================================================
+A. INFRASTRUCTURE CHECKS
+==================================================
+
+# 1. Backend health
+Invoke-RestMethod http://127.0.0.1:8080/health | ConvertTo-Json -Depth 5
+
+# 2. Backend dependency health
+Invoke-RestMethod http://127.0.0.1:8080/health/dependencies | ConvertTo-Json -Depth 8
+
+# 3. Ollama state
+Invoke-RestMethod http://127.0.0.1:11434/api/tags | ConvertTo-Json -Depth 6
+
+# 4. Voice bridge state
+Invoke-RestMethod http://127.0.0.1:50055/health | ConvertTo-Json -Depth 5
+
+# 5. VectorAI bridge state
+Invoke-RestMethod http://127.0.0.1:50054/health | ConvertTo-Json -Depth 5
+
+# 6. Docker VectorAI container state
+docker ps --filter "name=vectorai"
+
+# 7. Optional: open VectorAI Local UI in browser manually
+# http://127.0.0.1:6575
+
+
+==================================================
+B. AUTH
+==================================================
+
+# Login
+$login = Invoke-RestMethod `
+  -Uri http://127.0.0.1:8080/auth/login `
+  -Method Post `
+  -ContentType "application/json" `
+  -Body '{"username":"sailor1","password":"pass1234"}'
+
+$token = $login.token
+$token
+
+# Check current user
+Invoke-RestMethod `
+  -Uri http://127.0.0.1:8080/auth/me `
+  -Method Get `
+  -Headers @{ Authorization = "Bearer $token" } | ConvertTo-Json -Depth 8
+
+
+==================================================
+C. REGULAR AI CHAT / SESSION FLOW
+==================================================
+
+# Create session
+$session = Invoke-RestMethod `
+  -Uri http://127.0.0.1:8080/session/start `
+  -Method Post `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -ContentType "application/json" `
+  -Body '{}'
+
+$sessionId = $session.sessionId
+$session | ConvertTo-Json -Depth 8
+
+# Send regular text message
+Invoke-RestMethod `
+  -Uri http://127.0.0.1:8080/session/message `
+  -Method Post `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -ContentType "application/json" `
+  -Body "{`"sessionId`":`"$sessionId`",`"text`":`"I feel tired before my shift and need help`"}" | ConvertTo-Json -Depth 12
+
+# Read history
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:8080/session/history?sessionId=$sessionId" `
+  -Method Get `
+  -Headers @{ Authorization = "Bearer $token" } | ConvertTo-Json -Depth 12
+
+# List sessions
+Invoke-RestMethod `
+  -Uri http://127.0.0.1:8080/sessions `
+  -Method Get `
+  -Headers @{ Authorization = "Bearer $token" } | ConvertTo-Json -Depth 12
+
+
+==================================================
+D. REGULAR VOICE CHAT FLOW
+==================================================
+
+# Audio -> text reply payload
+curl.exe -X POST "http://127.0.0.1:8080/session/message/audio" `
+  -H "Authorization: Bearer $token" `
+  -F "sessionId=$sessionId" `
+  -F "file=@C:\Users\arman\Desktop\BlueCore\BlueCore\voice test\inputs\test3.m4a"
+
+# Audio -> WAV reply file
+curl.exe -X POST "http://127.0.0.1:8080/session/message/audio/reply-audio" `
+  -H "Authorization: Bearer $token" `
+  -F "sessionId=$sessionId" `
+  -F "file=@C:\Users\arman\Desktop\BlueCore\BlueCore\voice test\inputs\test3.m4a" `
+  --output ".\backend-reply.wav"
+
+
+==================================================
+E. DOCUMENT FLOW SETUP
+==================================================
+
+# Get templates
+Invoke-RestMethod `
+  -Uri http://127.0.0.1:8080/document-templates `
+  -Method Get `
+  -Headers @{ Authorization = "Bearer $token" } | ConvertTo-Json -Depth 12
+
+# Create document run
+$docCreate = Invoke-RestMethod `
+  -Uri http://127.0.0.1:8080/documents `
+  -Method Post `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -ContentType "application/json" `
+  -Body '{"templateCode":"shift-log-v1","title":"Shift Log Demo"}'
+
+$documentId = $docCreate.document.id
+$documentId
+$docCreate | ConvertTo-Json -Depth 12
+
+# Read document state
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:8080/documents/$documentId" `
+  -Method Get `
+  -Headers @{ Authorization = "Bearer $token" } | ConvertTo-Json -Depth 12
+
+
+==================================================
+F. DOCUMENT FILLING BY TEXT
+==================================================
+
+# Fill vessel_name
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:8080/documents/$documentId/respond" `
+  -Method Post `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -ContentType "application/json" `
+  -Body '{"text":"BlueCore Voyager"}' | ConvertTo-Json -Depth 12
+
+# Fill worker_name
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:8080/documents/$documentId/respond" `
+  -Method Post `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -ContentType "application/json" `
+  -Body '{"text":"Arman"}' | ConvertTo-Json -Depth 12
+
+# Fill role
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:8080/documents/$documentId/respond" `
+  -Method Post `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -ContentType "application/json" `
+  -Body '{"text":"Chief Engineer"}' | ConvertTo-Json -Depth 12
+
+# Fill shift_date
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:8080/documents/$documentId/respond" `
+  -Method Post `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -ContentType "application/json" `
+  -Body '{"text":"2026-05-01"}' | ConvertTo-Json -Depth 12
+
+# Fill shift_start
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:8080/documents/$documentId/respond" `
+  -Method Post `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -ContentType "application/json" `
+  -Body '{"text":"08:00"}' | ConvertTo-Json -Depth 12
+
+# Fill shift_end
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:8080/documents/$documentId/respond" `
+  -Method Post `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -ContentType "application/json" `
+  -Body '{"text":"16:00"}' | ConvertTo-Json -Depth 12
+
+
+==================================================
+G. DOCUMENT FILLING BY VOICE
+==================================================
+
+# Use voice for task_summary
+# Suggested spoken line:
+# "Performed routine engine room inspection, checked maintenance status, and completed all scheduled checks without major issues."
+
+curl.exe -X POST "http://127.0.0.1:8080/documents/$documentId/respond/audio" `
+  -H "Authorization: Bearer $token" `
+  -F "file=@C:\Users\arman\Desktop\BlueCore\BlueCore\voice test\inputs\test3.m4a"
+
+
+==================================================
+H. DOCUMENT REVIEW STATE
+==================================================
+
+# Full state after filling
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:8080/documents/$documentId" `
+  -Method Get `
+  -Headers @{ Authorization = "Bearer $token" } | ConvertTo-Json -Depth 12
+
+# Review endpoint (if available in your current backend version)
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:8080/documents/$documentId/review" `
+  -Method Post `
+  -Headers @{ Authorization = "Bearer $token" } | ConvertTo-Json -Depth 12
+
+# Confirm-review endpoint (only if your running backend version supports it)
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:8080/documents/$documentId/confirm-review" `
+  -Method Post `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -ContentType "application/json" `
+  -Body '{"confirmed":true}' | ConvertTo-Json -Depth 12
+
+# NOTE:
+# If /confirm-review is not available in your current running backend version,
+# use GET /documents/:id as the review/glance step and then export final PDF directly.
+
+
+==================================================
+I. PDF EXPORT AND DOWNLOAD
+==================================================
+
+# Draft PDF export
+$draftExport = Invoke-RestMethod `
+  -Uri "http://127.0.0.1:8080/documents/$documentId/export/pdf" `
+  -Method Post `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -ContentType "application/json" `
+  -Body '{"mode":"draft"}'
+
+$draftOutputId = $draftExport.output.id
+$draftExport | ConvertTo-Json -Depth 12
+
+# Download draft PDF
+Invoke-WebRequest `
+  -Uri "http://127.0.0.1:8080/document-outputs/$draftOutputId/download" `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -OutFile ".\draft-document-$documentId.pdf"
+
+# Final PDF export
+$finalExport = Invoke-RestMethod `
+  -Uri "http://127.0.0.1:8080/documents/$documentId/export/pdf" `
+  -Method Post `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -ContentType "application/json" `
+  -Body '{"mode":"final"}'
+
+$finalOutputId = $finalExport.output.id
+$finalExport | ConvertTo-Json -Depth 12
+
+# Download final PDF
+Invoke-WebRequest `
+  -Uri "http://127.0.0.1:8080/document-outputs/$finalOutputId/download" `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -OutFile ".\final-document-$documentId.pdf"
+
+# Optional finalize endpoint, if supported in your current backend version
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:8080/documents/$documentId/finalize" `
+  -Method Post `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -ContentType "application/json" `
+  -Body '{}' | ConvertTo-Json -Depth 12
+
+
+==================================================
+J. FINAL STATE CHECKS
+==================================================
+
+# Final document state
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:8080/documents/$documentId" `
+  -Method Get `
+  -Headers @{ Authorization = "Bearer $token" } | ConvertTo-Json -Depth 12
+
+# List all my documents
+Invoke-RestMethod `
+  -Uri http://127.0.0.1:8080/documents `
+  -Method Get `
+  -Headers @{ Authorization = "Bearer $token" } | ConvertTo-Json -Depth 12
+
+# List all my sessions
+Invoke-RestMethod `
+  -Uri http://127.0.0.1:8080/sessions `
+  -Method Get `
+  -Headers @{ Authorization = "Bearer $token" } | ConvertTo-Json -Depth 12
+
+
+==================================================
+WHAT SUCCESS LOOKS LIKE
+==================================================
+
+These should work:
+- GET /health
+- GET /health/dependencies
+- Ollama /api/tags
+- Voice bridge /health
+- Vector bridge /health
+- POST /session/message
+- GET /document-templates
+- POST /documents
+- POST /documents/:id/respond
+- POST /documents/:id/respond/audio
+- POST /documents/:id/export/pdf
+- GET /document-outputs/:outputId/download
+
+Fast live demo order
+--------------------
+1. Backend health
+2. Login
+3. Regular AI chat one message
+4. Create document
+5. Fill document by text
+6. Fill task summary by voice
+7. Show document state / review summary
+8. Export final PDF
+9. Download final PDF
+
+Notes
+-----
+- If $token is empty, login again.
+- If voice route fails, check:
+  http://127.0.0.1:50055/health
+- If vector-backed chat fails, check:
+  http://127.0.0.1:50054/health
+- If /confirm-review is missing, your running backend version does not include that route.

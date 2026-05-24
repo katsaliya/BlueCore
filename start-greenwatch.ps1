@@ -10,7 +10,7 @@ if (Test-Path $sqlitePath) {
 }
 
 Write-Host "Starting Docker VectorAI DB..." -ForegroundColor Yellow
-docker start greenwatch-vectorai-latest | Out-Null
+docker start vectorai | Out-Null
 
 Write-Host "Checking Ollama..." -ForegroundColor Yellow
 try {
@@ -22,6 +22,9 @@ try {
 
 Write-Host "Starting backend-ts on 8080..." -ForegroundColor Yellow
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd `"$root\services\backend-ts`"; npm run dev"
+
+Write-Host "Starting frontend on 5173..." -ForegroundColor Yellow
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd `"$root\frontend`"; npm run dev"
 
 Write-Host "Starting vectorai-bridge-py on 50054..." -ForegroundColor Yellow
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd `"$root\services\vectorai-bridge-py`"; .\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 50054 --reload"
@@ -36,4 +39,5 @@ Write-Host "  vectorai bridge:      http://127.0.0.1:50054"
 Write-Host "  voice bridge:         http://127.0.0.1:50055"
 Write-Host "  ui:                   http://127.0.0.1:5173"
 Write-Host "  ollama:               http://127.0.0.1:11434"
-Write-Host "  vector db host port:  127.0.0.1:50053"
+Write-Host "  vector db grpc port:  127.0.0.1:6574"
+Write-Host "  vector db local ui:   http://127.0.0.1:6575"
