@@ -25,7 +25,7 @@ export default function Landing() {
   useEffect(() => {
     // Fade in (0.8s) + hold (1s) + fade out (0.8s) = 2.6s total
     const timer = setTimeout(() => {
-      navigate("/app");
+      navigate("/login");
     }, 2600);
 
     return () => clearTimeout(timer);

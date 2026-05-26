@@ -1,47 +1,81 @@
+import { useState } from "react";
 import { motion } from "motion/react";
+import { useNavigate } from "react-router";
 import { currentUser } from "../data/mockData";
+import { useAuth } from "../contexts/AuthContext";
 import { Ship, MapPin, Star, Bell, Shield, Sliders, ChevronRight } from "lucide-react";
 
 const profileHeroImage =
   "https://images.unsplash.com/photo-1751563696363-abb675273f59?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxvY2VhbiUyMHN1bnNldCUyMGhvcml6b24lMjBwZWFjZWZ1bHxlbnwxfHx8fDE3NzI3NTQwNjZ8MA&ixlib=rb-4.1.0&q=80&w=800";
 
+const SETTING_LINKS = ["Edit Profile", "Language & Region", "Privacy Settings", "About SEREN", "Log Out"] as const;
+
 export function Profile() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const displayName = user?.name ?? currentUser.name;
+
+  const [toggles, setToggles] = useState({
+    "Break Check-in Reminders": true,
+    "Voice Acoustic Analysis": true,
+    "Personalised News": true,
+    "Social Suggestions": true,
+  });
+  const [tapped, setTapped] = useState<string | null>(null);
+
+  const flipToggle = (label: string) =>
+    setToggles((prev) => ({ ...prev, [label]: !prev[label as keyof typeof prev] }));
+
+  const handleSetting = (label: typeof SETTING_LINKS[number]) => {
+    if (label === "Log Out") {
+      logout();
+      navigate("/login");
+      return;
+    }
+    if (label === "Edit Profile") {
+      navigate("/onboarding");
+      return;
+    }
+    setTapped(label);
+    setTimeout(() => setTapped(null), 1200);
+  };
+
+  const preferences = [
+    { icon: <Bell size={14} />, label: "Break Check-in Reminders", sub: "Active on scheduled breaks" },
+    { icon: <Shield size={14} />, label: "Voice Acoustic Analysis", sub: "Stress detection via speech" },
+    { icon: <Sliders size={14} />, label: "Personalised News", sub: "Curated by your interests" },
+    { icon: <Star size={14} />, label: "Social Suggestions", sub: "Match based on schedules & interests" },
+  ] as const;
+
   return (
-    <div className="pb-8">
+    <div className="pb-28">
       <div className="relative h-48 overflow-hidden">
-        <img
-          src={profileHeroImage}
-          alt="ocean"
-          className="h-full w-full object-cover opacity-60"
-        />
+        <img src={profileHeroImage} alt="ocean" className="h-full w-full object-cover opacity-60" />
         <div
           className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(to bottom, transparent 0%, var(--app-screen-tint))",
-          }}
+          style={{ background: "linear-gradient(to bottom, transparent 0%, var(--app-screen-tint))" }}
         />
         <div className="absolute left-5 right-5 top-12">
           <h2 className="text-2xl" style={{ color: "var(--app-fg)" }}>Profile</h2>
         </div>
       </div>
 
-      {/* Avatar + info */}
       <div className="px-5 -mt-12 relative z-10">
+        {/* Avatar + name */}
         <div className="flex items-end gap-4 mb-4">
           <img
             src={currentUser.avatar}
-            alt={currentUser.name}
+            alt={displayName}
             className="w-20 h-20 rounded-2xl object-cover"
             style={{ border: "4px solid var(--app-screen-tint)" }}
           />
           <div className="pb-1">
-            <h2 className="text-xl" style={{ color: "var(--app-fg)" }}>{currentUser.name}</h2>
+            <h2 className="text-xl" style={{ color: "var(--app-fg)" }}>{displayName}</h2>
             <p className="text-sm" style={{ color: "var(--app-accent)" }}>{currentUser.role}</p>
           </div>
         </div>
 
-        {/* Stats row */}
+        {/* Stats */}
         <div className="grid grid-cols-3 gap-3 mb-5">
           {[
             { label: "Days at Sea", value: currentUser.daysAtSea, icon: <Ship size={13} /> },
@@ -67,15 +101,9 @@ export function Profile() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           className="rounded-xl p-4 mb-5"
-          style={{
-            background: "var(--app-card-gradient)",
-            border: "1px solid var(--app-accent-border-25)",
-          }}
+          style={{ background: "var(--app-card-gradient)", border: "1px solid var(--app-accent-border-25)" }}
         >
-          <p
-            className="text-[10px] uppercase tracking-wider mb-2"
-            style={{ color: "var(--app-accent)", opacity: 0.9 }}
-          >
+          <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "var(--app-accent)", opacity: 0.9 }}>
             Current Assignment
           </p>
           <div className="space-y-2">
@@ -112,6 +140,7 @@ export function Profile() {
               </div>
             ))}
             <button
+              onClick={() => navigate("/onboarding")}
               className="text-xs px-3 py-1.5 rounded-full"
               style={{
                 background: "var(--app-surface-hover)",
@@ -124,61 +153,58 @@ export function Profile() {
           </div>
         </div>
 
-        {/* SEREN Settings */}
+        {/* SEREN Preferences — interactive toggles */}
         <div className="mb-5">
           <p className="text-xs uppercase tracking-wider mb-3" style={{ color: "var(--app-fg-subtle)" }}>SEREN Preferences</p>
           <div className="space-y-2">
-            {[
-              { icon: <Bell size={14} />, label: "Break Check-in Reminders", sub: "Active on scheduled breaks", on: true },
-              { icon: <Shield size={14} />, label: "Voice Acoustic Analysis", sub: "Stress detection via speech", on: true },
-              { icon: <Sliders size={14} />, label: "Personalised News", sub: "Curated by your interests", on: true },
-              { icon: <Star size={14} />, label: "Social Suggestions", sub: "Match based on schedules & interests", on: true },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="flex items-center gap-3 rounded-xl px-4 py-3"
-                style={{ background: "var(--app-card-bg)", border: "1px solid var(--app-card-border)" }}
-              >
-                <div style={{ color: "var(--app-fg-faint)" }}>{item.icon}</div>
-                <div className="flex-1">
-                  <p className="text-sm" style={{ color: "var(--app-fg)" }}>{item.label}</p>
-                  <p className="text-[10px]" style={{ color: "var(--app-fg-faint)" }}>{item.sub}</p>
-                </div>
-                <div
-                  className="w-9 h-5 rounded-full relative"
-                  style={{
-                    background: item.on ? "var(--app-accent)" : "var(--app-toggle-track-off)",
-                  }}
+            {preferences.map((item) => {
+              const on = toggles[item.label];
+              return (
+                <button
+                  key={item.label}
+                  onClick={() => flipToggle(item.label)}
+                  className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left"
+                  style={{ background: "var(--app-card-bg)", border: "1px solid var(--app-card-border)" }}
                 >
+                  <div style={{ color: "var(--app-fg-faint)" }}>{item.icon}</div>
+                  <div className="flex-1">
+                    <p className="text-sm" style={{ color: "var(--app-fg)" }}>{item.label}</p>
+                    <p className="text-[10px]" style={{ color: "var(--app-fg-faint)" }}>{item.sub}</p>
+                  </div>
                   <div
-                    className={`absolute top-0.5 w-4 h-4 rounded-full shadow transition-all ${item.on ? "left-4" : "left-0.5"}`}
-                    style={{ background: "#ffffff" }}
-                  />
-                </div>
-              </div>
-            ))}
+                    className="w-9 h-5 rounded-full relative flex-shrink-0 transition-colors duration-200"
+                    style={{ background: on ? "var(--app-accent)" : "var(--app-toggle-track-off)" }}
+                  >
+                    <div
+                      className={`absolute top-0.5 w-4 h-4 rounded-full shadow transition-all duration-200 ${on ? "left-4" : "left-0.5"}`}
+                      style={{ background: "#ffffff" }}
+                    />
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* Settings links */}
         <div className="space-y-2">
-          {["Edit Profile", "Language & Region", "Privacy Settings", "About SEREN", "Log Out"].map((label) => (
-            <button
+          {SETTING_LINKS.map((label) => (
+            <motion.button
               key={label}
+              onClick={() => handleSetting(label)}
+              animate={tapped === label ? { scale: [1, 0.97, 1] } : {}}
+              transition={{ duration: 0.25 }}
               className="w-full flex items-center justify-between rounded-xl px-4 py-3"
               style={{
-                background: "var(--app-surface-ghost)",
+                background: tapped === label ? "var(--app-accent-soft)" : "var(--app-surface-ghost)",
                 border: "1px solid var(--app-card-border)",
               }}
             >
-              <span
-                className="text-sm"
-                style={{ color: label === "Log Out" ? "var(--app-danger)" : "var(--app-fg-subtle)" }}
-              >
-                {label}
+              <span className="text-sm" style={{ color: label === "Log Out" ? "var(--app-danger)" : "var(--app-fg-subtle)" }}>
+                {tapped === label ? "Coming soon…" : label}
               </span>
               {label !== "Log Out" && <ChevronRight size={13} style={{ color: "var(--app-fg-faint)" }} />}
-            </button>
+            </motion.button>
           ))}
         </div>
       </div>

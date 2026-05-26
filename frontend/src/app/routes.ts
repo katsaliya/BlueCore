@@ -7,15 +7,22 @@ import { Profile } from "./screens/Profile";
 import { PastDocuments } from "./screens/PastDocuments";
 import Landing from "./screens/Landing";
 import { DocumentPreview } from "./screens/DocumentPreview";
+import Login from "./screens/Login";
+import Signup from "./screens/Signup";
+import Onboarding from "./screens/Onboarding";
+import { ManagerHome } from "./screens/ManagerHome";
 
 export const router = createBrowserRouter([
   { path: "/", Component: Landing },
-  { path: "/app", Component: VoiceHomeV2 },
+  { path: "/login", Component: Login },
+  { path: "/signup", Component: Signup },
+  { path: "/onboarding", Component: Onboarding },
+  { path: "/manager-home", Component: ManagerHome },
   { path: "/document-preview", Component: DocumentPreview },
-  { path: "/home-v2", Component: VoiceHomeV2 },
   {
     Component: Root,
     children: [
+      { path: "/home-v2", Component: VoiceHomeV2 },
       { path: "/social", Component: Connect },
       { path: "/documents", Component: PastDocuments },
       { path: "/profile", Component: Profile },

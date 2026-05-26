@@ -14,12 +14,28 @@ const categoryColors: Record<string, string> = {
   "True Crime": "rgba(255,255,255,0.4)",
 };
 
+const NEWS_IDS = ["featured", "f1", "cooking", "photography", "truecrime"];
+
 export function Connect() {
   const navigate = useNavigate();
   const [activeInterest, setActiveInterest] = useState<Interest>("All");
+  const [bookmarked, setBookmarked] = useState<Set<string>>(new Set());
+  const [inviteSent, setInviteSent] = useState(false);
+
+  const toggleBookmark = (id: string) =>
+    setBookmarked((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const handleInvite = () => {
+    setInviteSent(true);
+    setTimeout(() => setInviteSent(false), 2000);
+  };
 
   return (
-    <div className="px-5 pt-12 pb-6">
+    <div className="px-5 pt-12 pb-28">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl" style={{ color: "var(--app-fg)" }}>Connect</h2>
@@ -144,14 +160,15 @@ export function Connect() {
             <Users size={12} style={{ color: "var(--app-accent)", opacity: 0.9 }} />
             <span className="text-xs flex-1 ml-1.5" style={{ color: "var(--app-fg-subtle)" }}>Elena + Marcus free at 12:00</span>
             <button
-              className="rounded-full px-2.5 py-1 text-[10px]"
+              onClick={handleInvite}
+              className="rounded-full px-2.5 py-1 text-[10px] transition-all"
               style={{
-                background: "var(--app-accent-soft)",
-                border: "1px solid var(--app-accent-border-30)",
-                color: "var(--app-accent)",
+                background: inviteSent ? "rgba(16,185,129,0.15)" : "var(--app-accent-soft)",
+                border: `1px solid ${inviteSent ? "rgba(16,185,129,0.4)" : "var(--app-accent-border-30)"}`,
+                color: inviteSent ? "#34d399" : "var(--app-accent)",
               }}
             >
-              Invite
+              {inviteSent ? "Sent ✓" : "Invite"}
             </button>
           </div>
         </div>
@@ -194,145 +211,58 @@ export function Connect() {
 
         {/* Bookmark button */}
         <button
+          onClick={() => toggleBookmark("featured")}
           className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center"
-          style={{
-            background: "var(--app-bookmark-fab-bg)",
-            backdropFilter: "blur(8px)",
-          }}
+          style={{ background: "var(--app-bookmark-fab-bg)", backdropFilter: "blur(8px)" }}
         >
-          <Bookmark size={14} style={{ color: "var(--app-fg-subtle)" }} />
+          <Bookmark
+            size={14}
+            fill={bookmarked.has("featured") ? "var(--app-accent)" : "none"}
+            style={{ color: bookmarked.has("featured") ? "var(--app-accent)" : "var(--app-fg-subtle)" }}
+          />
         </button>
       </motion.div>
 
       {/* News list */}
       <div className="mt-4 space-y-3">
-        {/* Row 1: F1 */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="rounded-xl px-4 py-3.5 flex gap-3"
-          style={{
-            background: "var(--app-card-bg)",
-            border: "1px solid var(--app-card-border)",
-          }}
-        >
-          <div
-            className="w-[52px] h-[52px] rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{
-              background: "var(--app-thumb-tile-bg)",
-              border: "1px solid var(--app-card-border)",
-            }}
+        {[
+          { id: "f1", emoji: "🏎", category: "F1", color: categoryColors.F1, headline: "Verstappen Takes Pole in Bahrain — 0.04s ahead of Norris", source: "F1.com · 5h ago", delay: 0.05 },
+          { id: "cooking", emoji: "🍳", category: "Cooking", color: categoryColors.Cooking, headline: "Gordon Ramsay Opens Waterfront Restaurant in Amsterdam Harbour", source: "Food & Wine · 1d ago", delay: 0.1 },
+          { id: "photography", emoji: "📸", category: "Photography", color: categoryColors.Photography, headline: "Sony World Photography Awards 2026 Shortlist Announced", source: "PetaPixel · 2d ago", delay: 0.15 },
+          { id: "truecrime", emoji: "🎙️", category: "True Crime", color: categoryColors["True Crime"], headline: "'Harbour Dark' Podcast Tops Charts — Maritime Mysteries Series", source: "Spotify · 1d ago", delay: 0.2 },
+        ].map((row) => (
+          <motion.button
+            key={row.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: row.delay }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full rounded-xl px-4 py-3.5 flex gap-3 text-left"
+            style={{ background: "var(--app-card-bg)", border: "1px solid var(--app-card-border)" }}
           >
-            <span className="text-xl" style={{ color: "var(--app-fg-subtle)" }}>🏎</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] tracking-wide uppercase" style={{ color: categoryColors.F1 }}>
-              F1
-            </p>
-            <h4 className="text-sm leading-snug mt-0.5 line-clamp-2" style={{ color: "var(--app-fg)" }}>
-              Verstappen Takes Pole in Bahrain — 0.04s ahead of Norris
-            </h4>
-            <p className="text-xs mt-1.5" style={{ color: "var(--app-fg-faint)" }}>F1.com · 5h ago</p>
-          </div>
-          <Bookmark size={14} className="flex-shrink-0 self-start mt-0.5" style={{ color: "var(--app-fg-faint)" }} />
-        </motion.div>
-
-        {/* Row 2: Cooking */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="rounded-xl px-4 py-3.5 flex gap-3"
-          style={{
-            background: "var(--app-card-bg)",
-            border: "1px solid var(--app-card-border)",
-          }}
-        >
-          <div
-            className="w-[52px] h-[52px] rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{
-              background: "var(--app-thumb-tile-bg)",
-              border: "1px solid var(--app-card-border)",
-            }}
-          >
-            <span className="text-xl" style={{ color: "var(--app-fg-subtle)" }}>🍳</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] tracking-wide uppercase" style={{ color: categoryColors.Cooking }}>
-              COOKING
-            </p>
-            <h4 className="text-sm leading-snug mt-0.5 line-clamp-2" style={{ color: "var(--app-fg)" }}>
-              Gordon Ramsay Opens Waterfront Restaurant in Amsterdam Harbour
-            </h4>
-            <p className="text-xs mt-1.5" style={{ color: "var(--app-fg-faint)" }}>Food & Wine · 1d ago</p>
-          </div>
-          <Bookmark size={14} className="flex-shrink-0 self-start mt-0.5" style={{ color: "var(--app-fg-faint)" }} />
-        </motion.div>
-
-        {/* Row 3: Photography */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="rounded-xl px-4 py-3.5 flex gap-3"
-          style={{
-            background: "var(--app-card-bg)",
-            border: "1px solid var(--app-card-border)",
-          }}
-        >
-          <div
-            className="w-[52px] h-[52px] rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{
-              background: "var(--app-thumb-tile-bg)",
-              border: "1px solid var(--app-card-border)",
-            }}
-          >
-            <span className="text-xl" style={{ color: "var(--app-fg-subtle)" }}>📸</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] tracking-wide uppercase" style={{ color: categoryColors.Photography }}>
-              PHOTOGRAPHY
-            </p>
-            <h4 className="text-sm leading-snug mt-0.5 line-clamp-2" style={{ color: "var(--app-fg)" }}>
-              Sony World Photography Awards 2026 Shortlist Announced
-            </h4>
-            <p className="text-xs mt-1.5" style={{ color: "var(--app-fg-faint)" }}>PetaPixel · 2d ago</p>
-          </div>
-          <Bookmark size={14} className="flex-shrink-0 self-start mt-0.5" style={{ color: "var(--app-fg-faint)" }} />
-        </motion.div>
-
-        {/* Row 4: True Crime */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="rounded-xl px-4 py-3.5 flex gap-3"
-          style={{
-            background: "var(--app-card-bg)",
-            border: "1px solid var(--app-card-border)",
-          }}
-        >
-          <div
-            className="w-[52px] h-[52px] rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{
-              background: "var(--app-thumb-tile-bg)",
-              border: "1px solid var(--app-card-border)",
-            }}
-          >
-            <span className="text-xl" style={{ color: "var(--app-fg-subtle)" }}>🎙️</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] tracking-wide uppercase" style={{ color: categoryColors["True Crime"] }}>
-              TRUE CRIME
-            </p>
-            <h4 className="text-sm leading-snug mt-0.5 line-clamp-2" style={{ color: "var(--app-fg)" }}>
-              'Harbour Dark' Podcast Tops Charts — Maritime Mysteries Series
-            </h4>
-            <p className="text-xs mt-1.5" style={{ color: "var(--app-fg-faint)" }}>Spotify · 1d ago</p>
-          </div>
-          <Bookmark size={14} className="flex-shrink-0 self-start mt-0.5" style={{ color: "var(--app-fg-faint)" }} />
-        </motion.div>
+            <div
+              className="w-[52px] h-[52px] rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: "var(--app-thumb-tile-bg)", border: "1px solid var(--app-card-border)" }}
+            >
+              <span className="text-xl" style={{ color: "var(--app-fg-subtle)" }}>{row.emoji}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] tracking-wide uppercase" style={{ color: row.color }}>{row.category}</p>
+              <h4 className="text-sm leading-snug mt-0.5 line-clamp-2" style={{ color: "var(--app-fg)" }}>{row.headline}</h4>
+              <p className="text-xs mt-1.5" style={{ color: "var(--app-fg-faint)" }}>{row.source}</p>
+            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleBookmark(row.id); }}
+              className="flex-shrink-0 self-start mt-0.5 p-1 -mr-1"
+            >
+              <Bookmark
+                size={14}
+                fill={bookmarked.has(row.id) ? "var(--app-accent)" : "none"}
+                style={{ color: bookmarked.has(row.id) ? "var(--app-accent)" : "var(--app-fg-faint)" }}
+              />
+            </button>
+          </motion.button>
+        ))}
       </div>
     </div>
   );

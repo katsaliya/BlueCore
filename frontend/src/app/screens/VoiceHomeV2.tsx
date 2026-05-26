@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring } from "motion/react";
 import { useNavigate } from "react-router";
-import { Mic, ChevronRight, FileText, Play, Grid, Globe, Compass, Archive, User, Sun, Moon, Keyboard, PanelLeft, MessageSquare } from "lucide-react";
+import { Mic, ChevronRight, FileText, Play, Grid, Sun, Moon, Keyboard, PanelLeft, MessageSquare } from "lucide-react";
 import { currentUser, DEMO_SCRIPT_ENGINE_ROOM, DEMO_SCRIPT_OIL_RECORD, completedDocs } from "../data/mockData";
+import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import {
   ApiError,
@@ -16,7 +17,7 @@ import {
 import type { BackendSession } from "../api/bluecoreApi";
 
 // ─── Context detection ────────────────────────────────────────────────────────
-function getShiftContext(): {
+function getShiftContext(name: string): {
   mode: "break" | "on-shift" | "off-shift";
   greeting: string;
   followUp: string;
@@ -33,20 +34,20 @@ function getShiftContext(): {
   if (totalMin >= breakStart && totalMin < breakEnd) {
     return {
       mode: "break",
-      greeting: `Hey ${currentUser.name}`,
-      followUp: "Hey Daniel — how was your shift? I can help close out a document while it's still fresh.",
+      greeting: `Hey ${name}`,
+      followUp: `Hey ${name} — how was your shift? I can help close out a document while it's still fresh.`,
     };
   } else if (totalMin >= shiftStart && totalMin < shiftEnd) {
     return {
       mode: "on-shift",
-      greeting: `Hey ${currentUser.name}`,
-      followUp: "Hey Daniel — how was your shift? I can help close out a document while it's still fresh.",
+      greeting: `Hey ${name}`,
+      followUp: `Hey ${name} — how was your shift? I can help close out a document while it's still fresh.`,
     };
   } else {
     return {
       mode: "off-shift",
-      greeting: `Evening, ${currentUser.name}`,
-      followUp: "Hey Daniel — how was your shift? I can help close out a document while it's still fresh.",
+      greeting: `Evening, ${name}`,
+      followUp: `Hey ${name} — how was your shift? I can help close out a document while it's still fresh.`,
     };
   }
 }
@@ -61,7 +62,7 @@ const breakReplies = [
 const shiftReplies = [
   "Good to know. I'll keep checking the acoustic readings quietly. Just say 'BlueCore' any time you need me.",
   "Understood. Take your time — I'm here whenever. And if the workload starts building up, just let me know.",
-  "Noted. You're doing well, Daniel. Port approach is in a few hours — want me to prep a briefing summary for you?",
+  "Noted. You're doing well, Liya. Port approach is in a few hours — want me to prep a briefing summary for you?",
 ];
 const offShiftReplies = [
   "Rest well then. I'll keep tonight's check-in light. You've done a full watch — that deserves some real downtime.",
@@ -359,7 +360,10 @@ function TypewriterText({
 export function VoiceHomeV2() {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
-  const ctx = getShiftContext();
+  const { user } = useAuth();
+  const displayName = user?.name ?? currentUser.name;
+  const firstName = displayName.split(" ")[0];
+  const ctx = useMemo(() => getShiftContext(firstName), [firstName]);
 
   const [orbState, setOrbState] = useState<"idle" | "listening" | "speaking">("idle");
   const [messages, setMessages] = useState<Message[]>(() => persistedMessages);
@@ -1160,7 +1164,42 @@ export function VoiceHomeV2() {
 
         {/* Input row */}
         <div className="w-full px-5 pt-1 pb-3" style={{ position: "relative", zIndex: 2 }}>
-          <div className="w-full flex items-center justify-end">
+          <div className="w-full flex items-center justify-start">
+
+            {/* Mic button — slides in on the LEFT when text input is open */}
+            <AnimatePresence>
+              {showInput && (
+                <motion.div
+                  key="mic-slot"
+                  initial={{ width: 0, marginRight: 0 }}
+                  animate={{ width: 46, marginRight: 12 }}
+                  exit={{ width: 0, marginRight: 0 }}
+                  transition={{ duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] }}
+                  style={{ flexShrink: 0, overflow: "hidden", display: "flex", alignItems: "center" }}
+                >
+                  <motion.button
+                    initial={{ scale: 0.6, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 2.2, opacity: 0 }}
+                    transition={{ duration: 0.28, ease: "easeOut" }}
+                    whileTap={{ scale: 0.88 }}
+                    disabled={isSending}
+                    onClick={() => { if (isSending) return; setShowInput(false); setOrbState("idle"); }}
+                    aria-label="Switch to voice"
+                    className="flex items-center justify-center rounded-full flex-shrink-0"
+                    style={{
+                      width: 46,
+                      height: 46,
+                      background: "var(--app-mic-bg-idle)",
+                      border: "1px solid var(--app-mic-border-idle)",
+                      boxShadow: "var(--app-mic-shadow-idle)",
+                    }}
+                  >
+                    <Mic size={18} style={{ color: "var(--app-fg-muted)" }} />
+                  </motion.button>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Single persistent morphing control — always in the DOM, animates its own
                 width and border-radius. No element swapping = no projection glitches. */}
@@ -1214,93 +1253,9 @@ export function VoiceHomeV2() {
               </AnimatePresence>
             </motion.div>
 
-            {/* Mic button in a collapsing wrapper — width spring is synced with the morphing
-                control so the layout stays tight throughout the animation */}
-            <AnimatePresence>
-              {showInput && (
-                <motion.div
-                  key="mic-slot"
-                  initial={{ width: 0, marginLeft: 0 }}
-                  animate={{ width: 46, marginLeft: 12 }}
-                  exit={{ width: 0, marginLeft: 0 }}
-                  transition={{ duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] }}
-                  style={{ flexShrink: 0, overflow: "hidden", display: "flex", alignItems: "center" }}
-                >
-                  <motion.button
-                    initial={{ scale: 0.6, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 2.2, opacity: 0 }}
-                    transition={{ duration: 0.28, ease: "easeOut" }}
-                    whileTap={{ scale: 0.88 }}
-                    disabled={isSending}
-                    onClick={() => { if (isSending) return; setShowInput(false); setOrbState("idle"); }}
-                    aria-label="Switch to voice"
-                    className="flex items-center justify-center rounded-full flex-shrink-0"
-                    style={{
-                      width: 46,
-                      height: 46,
-                      background: "var(--app-mic-bg-idle)",
-                      border: "1px solid var(--app-mic-border-idle)",
-                      boxShadow: "var(--app-mic-shadow-idle)",
-                    }}
-                  >
-                    <Mic size={18} style={{ color: "var(--app-fg-muted)" }} />
-                  </motion.button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
           </div>
         </div>
 
-        {/* Floating nav bar — fixed, glass effect */}
-        <nav
-          style={{
-            position: "fixed",
-            bottom: 24,
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "calc(100% - 48px)",
-            zIndex: 50,
-            borderRadius: 20,
-            background: theme === "light" ? "rgba(255,255,255,0.18)" : "rgba(15,25,45,0.50)",
-            backdropFilter: "blur(24px)",
-            WebkitBackdropFilter: "blur(24px)",
-            border: `1px solid rgba(${theme === "light" ? "37,70,127" : "255,255,255"},0.06)`,
-            boxShadow: "0 8px 32px rgba(0,0,0,0.10)",
-            padding: "8px 16px",
-          }}
-        >
-          <div className="flex items-center justify-around">
-            {[
-              { path: "/home-v2", icon: Globe, label: "Core" },
-              { path: "/documents", icon: Archive, label: "Past Docs" },
-              { path: "/social", icon: Compass, label: "Connect" },
-              { path: "/profile", icon: User, label: "You" },
-            ].map((item) => {
-              const isActive = item.path === "/home-v2";
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => navigate(item.path)}
-                  className="flex flex-col items-center gap-1.5 px-4 py-1"
-                >
-                  <motion.div whileTap={{ scale: 0.88 }}>
-                    <item.icon
-                      size={20}
-                      className={isActive ? "text-app-accent" : "text-app-fg-muted"}
-                    />
-                  </motion.div>
-                  <span
-                    className={`text-[10px] tracking-wide ${isActive ? "text-app-accent" : "text-app-fg-muted"}`}
-                  >
-                    {item.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </nav>
       </div>
 
       {/* ── Sidebar */}
@@ -1444,8 +1399,11 @@ export function VoiceHomeV2() {
 
               {/* Theme toggle */}
               <div
-                className="px-5 py-4 flex items-center justify-between"
-                style={{ borderTop: `1px solid rgba(${theme === "light" ? "37,70,127" : "255,255,255"},0.07)` }}
+                className="px-5 pt-4 flex items-center justify-between"
+                style={{
+                  borderTop: `1px solid rgba(${theme === "light" ? "37,70,127" : "255,255,255"},0.07)`,
+                  paddingBottom: 100,
+                }}
               >
                 <span className="text-sm" style={{ color: "var(--app-fg-subtle)" }}>
                   {theme === "light" ? "Light Mode" : "Dark Mode"}

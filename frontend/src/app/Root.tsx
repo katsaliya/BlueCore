@@ -1,68 +1,63 @@
-import { Outlet, useLocation, useNavigate } from "react-router";
-import { Globe, Compass, Archive, User } from "lucide-react";
-import { motion } from "motion/react";
-import { useTheme } from "./contexts/ThemeContext";
+import { Outlet, useLocation } from "react-router";
+import { AnimatePresence, motion } from "motion/react";
+import { AppNav } from "./components/AppNav";
 
-const navItems = [
-  { path: "/home-v2", icon: Globe, label: "Core" },
-  { path: "/documents", icon: Archive, label: "Past Docs" },
-  { path: "/social", icon: Compass, label: "Connect" },
-  { path: "/profile", icon: User, label: "You" },
-];
+const slideVariants = {
+  enter: (dir: string) => ({
+    x: dir === "right" ? "100%" : "-100%",
+    scale: 0.96,
+    opacity: 0,
+  }),
+  center: {
+    x: 0,
+    scale: 1,
+    opacity: 1,
+    transition: {
+      x:     { duration: 0.44, ease: [0.16, 1, 0.3, 1] as const },
+      scale: { duration: 0.44, ease: [0.16, 1, 0.3, 1] as const },
+      opacity: { duration: 0.2 },
+    },
+  },
+  exit: (dir: string) => ({
+    x: dir === "right" ? "-28%" : "28%",
+    scale: 0.88,
+    opacity: 0,
+    transition: {
+      x:     { duration: 0.2, ease: [0.6, 0, 1, 0.45] as const },
+      scale: { duration: 0.2, ease: [0.6, 0, 1, 0.45] as const },
+      opacity: { duration: 0.14 },
+    },
+  }),
+};
 
 export function Root() {
   const location = useLocation();
-  const navigate = useNavigate();
-  const { theme } = useTheme();
+  const direction = (location.state as { direction?: string } | null)?.direction ?? "right";
 
   return (
     <div className="flex flex-col h-full overflow-hidden relative bg-app-canvas text-app-fg">
-      <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ paddingBottom: 96 }}>
-        <Outlet />
+      {/* Clip wrapper — overflow hidden so slides don't peek outside */}
+      <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+        <AnimatePresence mode="sync" custom={direction} initial={false}>
+          <motion.div
+            key={location.pathname}
+            custom={direction}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            style={{
+              position: "absolute",
+              inset: 0,
+              overflowY: "auto",
+              overflowX: "hidden",
+            }}
+          >
+            <Outlet />
+          </motion.div>
+        </AnimatePresence>
       </div>
-
-      <nav
-        style={{
-          position: "fixed",
-          bottom: 24,
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "calc(100% - 48px)",
-          zIndex: 50,
-          borderRadius: 20,
-          background: theme === "light" ? "rgba(255,255,255,0.18)" : "rgba(15,25,45,0.50)",
-          backdropFilter: "blur(24px)",
-          WebkitBackdropFilter: "blur(24px)",
-          border: `1px solid rgba(${theme === "light" ? "37,70,127" : "255,255,255"},0.06)`,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.10)",
-          padding: "8px 16px",
-        }}
-      >
-        <div className="flex items-center justify-around">
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <button
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                className="flex flex-col items-center gap-1.5 px-4 py-1"
-              >
-                <motion.div whileTap={{ scale: 0.88 }}>
-                  <item.icon
-                    size={20}
-                    className={isActive ? "text-app-accent" : "text-app-fg-muted"}
-                  />
-                </motion.div>
-                <span
-                  className={`text-[10px] tracking-wide ${isActive ? "text-app-accent" : "text-app-fg-muted"}`}
-                >
-                  {item.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
+      <AppNav />
     </div>
   );
 }

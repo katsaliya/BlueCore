@@ -9,7 +9,7 @@
 // wellbeing data, and the hard-coded demo scripts for the pitch video demo.
 //
 // DEMO PROFILE:
-// Rewritten for the pitch demo — current user is now Daniel Reyes,
+// Rewritten for the pitch demo — current user is now Liya Reyes,
 // Second Engineer aboard MV Nordic Star. He fills the Engine Room Log
 // and the USCG Oil Record Book Part I (Machinery Space Operations).
 //
@@ -21,7 +21,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─── Current User ────────────────────────────────────────────────────────────
-// Daniel Reyes — Second Engineer, MV Nordic Star
+// Liya Reyes — Second Engineer, MV Nordic Star
 // Watch: 00:00–04:00 and 12:00–16:00 (standard engineer 4-on/8-off rotation)
 // Responsible for: main engine monitoring, auxiliary machinery, bilge operations,
 // oil record keeping, fuel management.
@@ -30,8 +30,8 @@
 
 export const currentUser = {
   id: "u1",
-  name: "Daniel Reyes",
-  nickname: "Danny",
+  name: "Liredy Lirah",
+  nickname: "Liya",
   role: "Second Engineer",
   rank: "2/E",
   vessel: "MV Nordic Star",
@@ -76,7 +76,7 @@ export const currentUser = {
     flag: "United States",
     date: "23 April 2025",
     watchPeriod: "12:00–16:00",
-    engineerName: "Daniel Reyes",
+    engineerName: "Liredy Lirah",
     engineerRank: "Second Engineer (2/E)",
     mainEngineType: "MAN B&W 6S60ME-C10.5",
     mainEnginePower: "13,560 kW",
@@ -95,7 +95,7 @@ export const currentUser = {
     periodFrom: "01 April 2025",
     operationType: "Machinery Space Operations (Part I)",
     date: "23 April 2025",
-    engineerName: "Daniel Reyes",
+    engineerName: "Liredy Lirah",
     engineerRank: "Second Engineer (2/E)",
     sludgeTank: "Engine Room Sludge Tank No. 1",
     sludgeTankCapacity: "15.0 m³",
@@ -119,7 +119,7 @@ export const currentUser = {
 export const DEMO_SCRIPT_ENGINE_ROOM = [
   {
     ai:
-      "Hey Danny — starting your Engine Room Log for the 12:00 to 16:00 watch. " +
+      "Okay — let's start your Engine Room Log for the 12:00 to 16:00 watch. " +
       "I've pre-filled the vessel particulars, your name, rank, watch period, and today's date. " +
       "Let's get the main engine readings. What was your average RPM " +
       "and engine load across the watch?",
@@ -189,7 +189,7 @@ export const DEMO_SCRIPT_ENGINE_ROOM = [
 export const DEMO_SCRIPT_OIL_RECORD = [
   {
     ai:
-      "Hey Danny — opening an Oil Record Book entry for today, " +
+      "Okay, let's open an Oil Record Book entry for today, " +
       "Section C: collection of oil residues. " +
       "I've pre-filled the vessel particulars, your name, today's date, " +
       "and the sludge tank identity and capacity from the vessel record. " +
@@ -229,7 +229,7 @@ export const DEMO_SCRIPT_OIL_RECORD = [
 export const crewMembers = [
   {
     id: "u2",
-    name: "Elena Petrov",
+    name: "Cornelius Paprottka",
     role: "Navigation Officer",
     avatar:
       "https://images.unsplash.com/photo-1741762700232-2b7a6aac4557?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYXJpdGltZSUyMHdvcmtlciUyMHNoaXAlMjBkZWNrJTIwb2NlYW58ZW58MXx8fHwxNzcyODI0NDg4fDA&ixlib=rb-4.1.0&q=80&w=200",
@@ -242,7 +242,7 @@ export const crewMembers = [
   },
   {
     id: "u3",
-    name: "Marcus Osei",
+    name: "Tomi Womi",
     role: "Chief Engineer",
     avatar:
       "https://images.unsplash.com/flagged/photo-1578152887081-37132e7bf082?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzaGlwJTIwZW5naW5lZXIlMjBiZWxvdyUyMGRlY2slMjBtYXJpdGltZXxlbnwxfHx8fDE3NzI4MjQ0ODl8MA&ixlib=rb-4.1.0&q=80&w=200",
@@ -255,7 +255,7 @@ export const crewMembers = [
   },
   {
     id: "u4",
-    name: "James Calloway",
+    name: "Ava Bava",
     role: "Chief Officer",
     avatar:
       "https://images.unsplash.com/photo-1760331840305-e5c81446c158?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzaGlwJTIwY3JldyUyMGx1bmNoJTIwYnJlYWslMjBzb2NpYWx8ZW58MXx8fHwxNzcyODI0NDkzfDA&ixlib=rb-4.1.0&q=80&w=200",
@@ -268,7 +268,7 @@ export const crewMembers = [
   },
   {
     id: "u5",
-    name: "Ravi Sharma",
+    name: "Bri Mami",
     role: "Third Engineer",
     avatar:
       "https://images.unsplash.com/photo-1751563696363-abb675273f59?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxvY2VhbiUyMHN1bnNldCUyMGhvcml6b24lMjBwZWFjZWZ1bHxlbnwxfHx8fDE3NzI3NTQwNjZ8MA&ixlib=rb-4.1.0&q=80&w=200",
@@ -298,7 +298,7 @@ export const schedule = [
 ];
 
 // ─── News Feed ────────────────────────────────────────────────────────────────
-// Tailored to Daniel's interests: Basketball, Hip-hop, Cooking, Gaming, MMA
+// Tailored to Liya's interests: Basketball, Hip-hop, Cooking, Gaming, MMA
 
 export const newsItems = [
   {
@@ -409,13 +409,13 @@ export const wellbeingData = {
 };
 
 // ─── AI Check-in Messages ─────────────────────────────────────────────────────
-// Used in ConversationView — Danny's existing conversation history.
+// Used in ConversationView — Liya's existing conversation history.
 
 export const aiCheckInMessages = [
   {
     role: "assistant",
     text:
-      "Hey Danny — afternoon watch starting at 12:00. You've got the Oil Record Book entry due before then. Want to knock that out now while it's quiet?",
+      "Hey Liya — afternoon watch starting at 12:00. You've got the Oil Record Book entry due before then. Want to knock that out now while it's quiet?",
     time: "11:32",
   },
   {

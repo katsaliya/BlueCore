@@ -10,6 +10,7 @@
   --app-canvas: #e1ecff;
   --app-nav: #e1ecff;
   --app-nav-border: rgba(37, 70, 127, 0.06);
+  --app-nav-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
 
   /* Brand: interactive / nav-active (not the same as shadcn --primary) */
   --app-accent: #25467f;
@@ -144,6 +145,7 @@
   --app-canvas: #030508;
   --app-nav: #07090f;
   --app-nav-border: rgba(255, 255, 255, 0.06);
+  --app-nav-shadow: 0 6px 24px rgba(0, 0, 0, 0.5), 0 0 40px rgba(79, 195, 247, 0.18), 0 0 80px rgba(79, 195, 247, 0.08);
 
   --app-accent: #4fc3f7;
   --app-highlight: #4fc3f7;
