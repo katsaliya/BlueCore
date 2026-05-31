@@ -1,33 +1,32 @@
 import { createBrowserRouter } from "react-router";
 import { Root } from "./Root";
-import { VoiceHome } from "./screens/VoiceHome";
 import { VoiceHomeV2 } from "./screens/VoiceHomeV2";
-import { Dashboard } from "./screens/Dashboard";
 import { Schedule } from "./screens/Schedule";
 import { Connect } from "./screens/Connect";
-import { Wellbeing } from "./screens/Wellbeing";
-import { NewsFeed } from "./screens/NewsFeed";
 import { Profile } from "./screens/Profile";
-import { ConversationView } from "./screens/ConversationView";
 import { PastDocuments } from "./screens/PastDocuments";
-import { Splash } from "./screens/Splash";
+import Landing from "./screens/Landing";
+import { DocumentPreview } from "./screens/DocumentPreview";
+import Login from "./screens/Login";
+import Signup from "./screens/Signup";
+import Onboarding from "./screens/Onboarding";
+import { ManagerHome } from "./screens/ManagerHome";
 
 export const router = createBrowserRouter([
-  { path: "/splash", Component: Splash },
-  { path: "/home-v2", Component: VoiceHomeV2 },
+  { path: "/", Component: Landing },
+  { path: "/login", Component: Login },
+  { path: "/signup", Component: Signup },
+  { path: "/onboarding", Component: Onboarding },
+  { path: "/manager-home", Component: ManagerHome },
+  { path: "/document-preview", Component: DocumentPreview },
   {
-    path: "/",
     Component: Root,
     children: [
-      { index: true, Component: VoiceHomeV2 },
-      { path: "conversation", Component: ConversationView },
-      { path: "insights", Component: Dashboard },
-      { path: "schedule", Component: Schedule },
-      { path: "social", Component: Connect },
-      { path: "wellbeing", Component: Wellbeing },
-      { path: "news", Component: NewsFeed },
-      { path: "profile", Component: Profile },
-      { path: "documents", Component: PastDocuments },
+      { path: "/home-v2", Component: VoiceHomeV2 },
+      { path: "/social", Component: Connect },
+      { path: "/documents", Component: PastDocuments },
+      { path: "/profile", Component: Profile },
+      { path: "/schedule", Component: Schedule },
     ],
   },
 ]);

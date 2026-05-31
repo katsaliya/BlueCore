@@ -1,53 +1,63 @@
-import { Outlet, useLocation, useNavigate } from "react-router";
-import { Home, Compass, Archive, User } from "lucide-react";
-import { motion } from "motion/react";
+import { Outlet, useLocation } from "react-router";
+import { AnimatePresence, motion } from "motion/react";
+import { AppNav } from "./components/AppNav";
 
-const navItems = [
-  { path: "/", icon: Home, label: "Home" },
-  { path: "/social", icon: Compass, label: "Connect" },
-  { path: "/documents", icon: Archive, label: "Past Docs" },
-  { path: "/profile", icon: User, label: "You" },
-];
+const slideVariants = {
+  enter: (dir: string) => ({
+    x: dir === "right" ? "100%" : "-100%",
+    scale: 0.96,
+    opacity: 0,
+  }),
+  center: {
+    x: 0,
+    scale: 1,
+    opacity: 1,
+    transition: {
+      x:     { duration: 0.44, ease: [0.16, 1, 0.3, 1] as const },
+      scale: { duration: 0.44, ease: [0.16, 1, 0.3, 1] as const },
+      opacity: { duration: 0.2 },
+    },
+  },
+  exit: (dir: string) => ({
+    x: dir === "right" ? "-28%" : "28%",
+    scale: 0.88,
+    opacity: 0,
+    transition: {
+      x:     { duration: 0.2, ease: [0.6, 0, 1, 0.45] as const },
+      scale: { duration: 0.2, ease: [0.6, 0, 1, 0.45] as const },
+      opacity: { duration: 0.14 },
+    },
+  }),
+};
 
 export function Root() {
   const location = useLocation();
-  const navigate = useNavigate();
-  const isHome = location.pathname === "/";
+  const direction = (location.state as { direction?: string } | null)?.direction ?? "right";
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden max-w-[430px] mx-auto relative bg-app-canvas text-app-fg">
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
-        <Outlet />
+    <div className="flex flex-col h-full overflow-hidden relative bg-app-canvas text-app-fg">
+      {/* Clip wrapper — overflow hidden so slides don't peek outside */}
+      <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+        <AnimatePresence mode="sync" custom={direction} initial={false}>
+          <motion.div
+            key={location.pathname}
+            custom={direction}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            style={{
+              position: "absolute",
+              inset: 0,
+              overflowY: "auto",
+              overflowX: "hidden",
+            }}
+          >
+            <Outlet />
+          </motion.div>
+        </AnimatePresence>
       </div>
-
-      {!isHome && (
-        <nav className="flex-shrink-0 px-4 pb-6 pt-3 bg-app-nav border-t border-app-nav-border">
-          <div className="flex items-center justify-around">
-            {navItems.map((item) => {
-              const isActive = location.pathname.startsWith(item.path);
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => navigate(item.path)}
-                  className="flex flex-col items-center gap-1.5 px-4 py-1"
-                >
-                  <motion.div whileTap={{ scale: 0.88 }}>
-                    <item.icon
-                      size={20}
-                      className={isActive ? "text-app-accent" : "text-app-fg-muted"}
-                    />
-                  </motion.div>
-                  <span
-                    className={`text-[10px] tracking-wide ${isActive ? "text-app-accent" : "text-app-fg-muted"}`}
-                  >
-                    {item.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </nav>
-      )}
+      <AppNav />
     </div>
   );
 }

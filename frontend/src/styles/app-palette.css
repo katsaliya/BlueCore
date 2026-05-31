@@ -10,15 +10,16 @@
   --app-canvas: #e1ecff;
   --app-nav: #e1ecff;
   --app-nav-border: rgba(37, 70, 127, 0.06);
+  --app-nav-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
 
   /* Brand: interactive / nav-active (not the same as shadcn --primary) */
   --app-accent: #25467f;
   --app-highlight: #4fc3f7;
 
   --app-fg: #1a3260;
-  --app-fg-muted: rgba(37, 70, 127, 0.4);
-  --app-fg-subtle: rgba(37, 70, 127, 0.5);
-  --app-fg-faint: rgba(37, 70, 127, 0.3);
+  --app-fg-muted: rgba(37, 70, 127, 0.68);
+  --app-fg-subtle: rgba(37, 70, 127, 0.78);
+  --app-fg-faint: rgba(37, 70, 127, 0.55);
 
   /* Profile / deeper content tint */
   --app-screen-tint: #e1ecff;
@@ -144,14 +145,15 @@
   --app-canvas: #030508;
   --app-nav: #07090f;
   --app-nav-border: rgba(255, 255, 255, 0.06);
+  --app-nav-shadow: 0 6px 24px rgba(0, 0, 0, 0.5), 0 0 40px rgba(79, 195, 247, 0.18), 0 0 80px rgba(79, 195, 247, 0.08);
 
   --app-accent: #4fc3f7;
   --app-highlight: #4fc3f7;
 
   --app-fg: #ffffff;
-  --app-fg-muted: rgba(255, 255, 255, 0.4);
-  --app-fg-subtle: rgba(255, 255, 255, 0.5);
-  --app-fg-faint: rgba(255, 255, 255, 0.3);
+  --app-fg-muted: rgba(255, 255, 255, 0.68);
+  --app-fg-subtle: rgba(255, 255, 255, 0.78);
+  --app-fg-faint: rgba(255, 255, 255, 0.55);
 
   --app-screen-tint: #0a0f1e;
 
