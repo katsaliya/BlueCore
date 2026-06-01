@@ -6,6 +6,7 @@ import vectorAiRouter from "./routes/vectorai";
 import vectorAiBridgeRouter from "./routes/vectoraiBridge";
 import sessionRouter from "./routes/session";
 import authRouter from "./routes/auth";
+import documentsRouter from "./routes/documents";
 import { env } from "./config/env";
 import { runMigrations } from "./db/migrate";
 
@@ -30,13 +31,13 @@ app.use(
 );
 app.use(express.json());
 
+app.use(documentsRouter);
 app.use(healthRouter);
 app.use(dependenciesRouter);
 app.use(vectorAiRouter);
 app.use(vectorAiBridgeRouter);
 app.use(authRouter);
 app.use(sessionRouter);
-
 app.listen(env.PORT, env.HOST, () => {
   console.log(`GreenWatch backend listening on http://${env.HOST}:${env.PORT}`);
 });

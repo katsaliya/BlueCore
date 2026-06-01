@@ -45,6 +45,52 @@ export function runMigrations() {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
     );
 
+    CREATE TABLE IF NOT EXISTS document_templates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      description TEXT,
+      schema_json TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS document_runs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      session_id TEXT,
+      template_id INTEGER NOT NULL,
+      status TEXT NOT NULL,
+      title TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      completed_at TEXT,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE SET NULL,
+      FOREIGN KEY (template_id) REFERENCES document_templates(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS document_field_values (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      document_run_id INTEGER NOT NULL,
+      field_name TEXT NOT NULL,
+      field_value TEXT,
+      source TEXT,
+      confidence REAL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (document_run_id) REFERENCES document_runs(id) ON DELETE CASCADE,
+      UNIQUE(document_run_id, field_name)
+    );
+
+    CREATE TABLE IF NOT EXISTS document_outputs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      document_run_id INTEGER NOT NULL,
+      output_type TEXT NOT NULL,
+      output_mode TEXT NOT NULL,
+      mime_type TEXT NOT NULL,
+      file_path TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (document_run_id) REFERENCES document_runs(id) ON DELETE CASCADE
+    );
+
     CREATE INDEX IF NOT EXISTS idx_messages_session_id
     ON messages(session_id);
 
@@ -56,5 +102,17 @@ export function runMigrations() {
 
     CREATE INDEX IF NOT EXISTS idx_audio_records_message_id
     ON audio_records(message_id);
+
+    CREATE INDEX IF NOT EXISTS idx_document_runs_user_id
+    ON document_runs(user_id);
+
+    CREATE INDEX IF NOT EXISTS idx_document_runs_session_id
+    ON document_runs(session_id);
+
+    CREATE INDEX IF NOT EXISTS idx_document_field_values_run_id
+    ON document_field_values(document_run_id);
+
+    CREATE INDEX IF NOT EXISTS idx_document_outputs_run_id
+    ON document_outputs(document_run_id);
   `);
 }
