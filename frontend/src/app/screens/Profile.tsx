@@ -8,7 +8,7 @@ import { Ship, MapPin, Star, Bell, Shield, Sliders, ChevronRight } from "lucide-
 const profileHeroImage =
   "https://images.unsplash.com/photo-1751563696363-abb675273f59?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxvY2VhbiUyMHN1bnNldCUyMGhvcml6b24lMjBwZWFjZWZ1bHxlbnwxfHx8fDE3NzI3NTQwNjZ8MA&ixlib=rb-4.1.0&q=80&w=800";
 
-const SETTING_LINKS = ["Edit Profile", "Language & Region", "Privacy Settings", "About SEREN", "Log Out"] as const;
+const SETTING_LINKS = ["Edit Profile", "Language & Region", "Privacy Settings", "About BlueCore AI", "Log Out"] as const;
 
 export function Profile() {
   const { user, logout } = useAuth();
@@ -155,7 +155,7 @@ export function Profile() {
 
         {/* SEREN Preferences — interactive toggles */}
         <div className="mb-5">
-          <p className="text-xs uppercase tracking-wider mb-3" style={{ color: "var(--app-fg-subtle)" }}>SEREN Preferences</p>
+          <p className="text-xs uppercase tracking-wider mb-3" style={{ color: "var(--app-fg-subtle)" }}>BlueCore Preferences</p>
           <div className="space-y-2">
             {preferences.map((item) => {
               const on = toggles[item.label];

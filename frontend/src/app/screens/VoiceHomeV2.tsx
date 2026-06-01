@@ -180,6 +180,7 @@ function WireframeOrb({
     let time = 0;
     let rotX = 0;
     let rotY = 0;
+    let localAmp = 0;
     let frame: number;
 
     function noise(phi: number, theta: number, t: number): number {
@@ -205,7 +206,8 @@ function WireframeOrb({
 
     const draw = () => {
       ctx.clearRect(0, 0, ORB_CSS, ORB_CSS);
-      const amp = ampRef.current ?? 0;
+      localAmp = localAmp * 0.80 + (ampRef.current ?? 0) * 0.20;
+      const amp = localAmp;
       const st = stateRef.current;
 
       const rotSpeed = st === "listening" ? 0.007 : st === "speaking" ? 0.005 : 0.0018;
@@ -213,8 +215,15 @@ function WireframeOrb({
       rotX += rotSpeed * 0.4;
       time += st === "listening" ? 0.028 : st === "speaking" ? 0.020 : 0.008;
 
-      const deformBase = st === "idle" ? 0.22 : st === "speaking" ? 0.38 : 0.52;
-      const deform = deformBase + amp * 0.55;
+      // Listening: keep organic base shape, scale up deform with voice amplitude.
+      // Max deform at amp=1 is 1.07, matching the previous ceiling.
+      const deform = st === "listening"
+        ? 0.22 + amp * 0.85
+        : (st === "idle" ? 0.22 : 0.38) + amp * 0.55;
+
+      // Gentle horizontal stretch when listening: at silence the orb is slightly
+      // wider than tall; at full voice it's back to a perfect circle.
+      const yScale = st === "listening" ? 0.78 + amp * 0.22 : 1.0;
 
       const pts: Array<[number, number, number]> = [];
       for (let i = 0; i <= ROWS; i++) {
@@ -227,7 +236,7 @@ function WireframeOrb({
           const y0 = r * Math.sin(phi) * Math.sin(theta);
           const z0 = r * Math.cos(phi);
           const [x, y, z] = rotatePoint(x0, y0, z0, rotX, rotY);
-          pts.push([x, y, z]);
+          pts.push([x, y * yScale, z]);
         }
       }
 
@@ -388,6 +397,10 @@ export function VoiceHomeV2() {
   );
   const hasInitializedMessageTypingRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const micAmpFrameRef = useRef<number>(0);
+  const hasRealMicRef = useRef(false);
 
   const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
@@ -404,7 +417,7 @@ export function VoiceHomeV2() {
   const amp = useAcousticAmplitude(orbState);
   const ampRef = useRef<number>(0);
   useEffect(() => {
-    return amp.on("change", (v) => { ampRef.current = v; });
+    return amp.on("change", (v) => { if (!hasRealMicRef.current) ampRef.current = v; });
   }, [amp]);
 
   useEffect(() => {
@@ -561,6 +574,11 @@ export function VoiceHomeV2() {
       listenTimer.current = null;
     }
 
+    cancelAnimationFrame(micAmpFrameRef.current);
+    hasRealMicRef.current = false;
+    if (audioCtxRef.current) { void audioCtxRef.current.close(); audioCtxRef.current = null; }
+    analyserRef.current = null;
+
     const recorder = mediaRecorderRef.current;
     if (recorder && recorder.state !== "inactive") {
       recorder.ondataavailable = null;
@@ -633,6 +651,9 @@ export function VoiceHomeV2() {
       active = false;
       if (listenTimer.current) clearTimeout(listenTimer.current);
       stopMediaStream();
+      cancelAnimationFrame(micAmpFrameRef.current);
+      hasRealMicRef.current = false;
+      if (audioCtxRef.current) { void audioCtxRef.current.close(); audioCtxRef.current = null; }
     };
   }, [markBackendError, stopMediaStream]);
 
@@ -812,6 +833,11 @@ export function VoiceHomeV2() {
       };
 
       recorder.onstop = () => {
+        cancelAnimationFrame(micAmpFrameRef.current);
+        hasRealMicRef.current = false;
+        if (audioCtxRef.current) { void audioCtxRef.current.close(); audioCtxRef.current = null; }
+        analyserRef.current = null;
+
         const finalMimeType = recorder.mimeType || "audio/webm";
         const blob = new Blob(recordedChunksRef.current, { type: finalMimeType });
 
@@ -830,9 +856,32 @@ export function VoiceHomeV2() {
       recorder.start();
       setIsListening(true);
       setOrbState("listening");
-      listenTimer.current = setTimeout(() => {
-        stopRecording();
-      }, 4500);
+
+      try {
+        const audioCtx = new AudioContext();
+        const source = audioCtx.createMediaStreamSource(stream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        analyserRef.current = analyser;
+        audioCtxRef.current = audioCtx;
+        hasRealMicRef.current = true;
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        const readAmp = () => {
+          analyser.getByteTimeDomainData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            const v = (dataArray[i] - 128) / 128;
+            sum += v * v;
+          }
+          ampRef.current = Math.min(Math.sqrt(sum / dataArray.length) * 3.5, 1);
+          micAmpFrameRef.current = requestAnimationFrame(readAmp);
+        };
+        micAmpFrameRef.current = requestAnimationFrame(readAmp);
+      } catch {
+        // fall back to simulated amplitude
+      }
     } catch (error) {
       setIsListening(false);
       setBackendIssue(getApiErrorMessage(error));
@@ -1121,24 +1170,6 @@ export function VoiceHomeV2() {
               style={{ background: "transparent" }}
             >
               <WireframeOrb state={orbState} ampRef={ampRef} />
-
-              {/* Listening pulse rings */}
-              <AnimatePresence>
-                {isListening && (
-                  <>
-                    {[1, 2].map((r) => (
-                      <motion.div
-                        key={r}
-                        className="absolute inset-0 rounded-full pointer-events-none"
-                        style={{ border: "1px solid var(--app-accent-border-40)" }}
-                        initial={{ scale: 1, opacity: 0.6 }}
-                        animate={{ scale: 1 + r * 0.3, opacity: 0 }}
-                        transition={{ duration: 1.5, repeat: Infinity, delay: r * 0.4, ease: "easeOut" }}
-                      />
-                    ))}
-                  </>
-                )}
-              </AnimatePresence>
             </button>
 
             {/* State hint */}
