@@ -7,7 +7,7 @@ export const env = {
   HOST: process.env.HOST || "127.0.0.1",
   NODE_ENV: process.env.NODE_ENV || "development",
   CORS_ORIGIN:
-    process.env.CORS_ORIGIN || "http://127.0.0.1:5173,http://localhost:5173",
+    process.env.CORS_ORIGIN || "http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:5174,http://localhost:5174",
 
   VECTORAI_BRIDGE_BASE_URL:
     process.env.VECTORAI_BRIDGE_BASE_URL || "http://127.0.0.1:50054",

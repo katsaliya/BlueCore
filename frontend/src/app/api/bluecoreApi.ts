@@ -294,4 +294,180 @@ export async function sendSessionAudioMessage(
   );
 }
 
+// ─── Document types ───────────────────────────────────────────────────────────
+
+export type DocumentTemplate = {
+  id: number;
+  code: string;
+  name: string;
+  description: string | null;
+  schemaJson: string;
+  createdAt: string;
+};
+
+export type DocumentField = {
+  name: string;
+  label: string;
+  type: string;
+  required: boolean;
+  prompt?: string;
+  value?: string | null;
+  source?: string | null;
+  confidence?: number | null;
+  updatedAt?: string | null;
+};
+
+export type DocumentOutput = {
+  id: number;
+  documentRunId: number;
+  outputType: string;
+  outputMode: string;
+  mimeType: string;
+  filePath: string;
+  createdAt: string;
+};
+
+export type DocumentState = {
+  ok: boolean;
+  document: {
+    id: number;
+    userId: number;
+    sessionId: string | null;
+    templateId: number;
+    status: string;
+    title: string;
+    createdAt: string;
+    completedAt: string | null;
+  };
+  template: { id: number; code: string; name: string; description: string | null };
+  fields: DocumentField[];
+  missingRequiredFields: string[];
+  completionPercent: number;
+  currentField: DocumentField | null;
+  nextQuestion: string | null;
+  isReadyForPdf: boolean;
+  readyForReview: boolean;
+  reviewSummary: Array<{ label: string; value: string | null; required: boolean }>;
+  nextAction: string;
+  outputs: DocumentOutput[];
+  transcript?: string | null;
+};
+
+// ─── Document API ─────────────────────────────────────────────────────────────
+
+export async function getDocumentTemplates(token: string) {
+  return request<{ ok: boolean; templates: DocumentTemplate[] }>(
+    "/document-templates", {}, token
+  );
+}
+
+export async function createDocument(
+  token: string,
+  templateCode: string,
+  title: string,
+  sessionId?: string
+) {
+  return request<DocumentState>(
+    "/documents",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ templateCode, title, sessionId: sessionId ?? null })
+    },
+    token
+  );
+}
+
+export async function getDocument(token: string, documentId: number) {
+  return request<DocumentState>(`/documents/${documentId}`, {}, token);
+}
+
+export async function updateDocumentField(
+  token: string,
+  documentId: number,
+  fieldName: string,
+  fieldValue: string,
+  source = "profile",
+  confidence = 1
+) {
+  return request<DocumentState>(
+    `/documents/${documentId}/fields`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fieldName, fieldValue, source, confidence })
+    },
+    token
+  );
+}
+
+export async function respondToDocument(token: string, documentId: number, text: string) {
+  return request<DocumentState>(
+    `/documents/${documentId}/respond`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text })
+    },
+    token
+  );
+}
+
+export async function respondToDocumentAudio(token: string, documentId: number, file: File) {
+  const form = new FormData();
+  form.append("file", file);
+  return request<DocumentState>(
+    `/documents/${documentId}/respond/audio`,
+    { method: "POST", body: form },
+    token
+  );
+}
+
+export async function exportDocumentDraft(token: string, documentId: number) {
+  return request<{ ok: boolean; output: DocumentOutput }>(
+    `/documents/${documentId}/export/pdf`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "draft" })
+    },
+    token
+  );
+}
+
+export async function openDocumentPreview(token: string, documentId: number) {
+  const { output } = await exportDocumentDraft(token, documentId);
+  const response = await fetch(`${API_BASE_URL}/document-outputs/${output.id}/download`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) throw new Error(`Preview failed: HTTP ${response.status}`);
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, "_blank");
+  if (win) win.focus();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+export async function finalizeDocument(token: string, documentId: number) {
+  return request<DocumentState & { output?: DocumentOutput }>(
+    `/documents/${documentId}/finalize`,
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" },
+    token
+  );
+}
+
+export async function downloadDocumentOutput(token: string, outputId: number, filename: string) {
+  const response = await fetch(`${API_BASE_URL}/document-outputs/${outputId}/download`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) throw new Error(`Download failed: HTTP ${response.status}`);
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
 export { API_BASE_URL };

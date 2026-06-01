@@ -13,6 +13,13 @@ import {
   sendSessionAudioMessage,
   sendSessionMessage,
   startSession,
+  createDocument,
+  getDocument,
+  updateDocumentField,
+  respondToDocument,
+  finalizeDocument,
+  downloadDocumentOutput,
+  openDocumentPreview,
 } from "../api/bluecoreApi";
 import type { BackendSession } from "../api/bluecoreApi";
 
@@ -72,7 +79,7 @@ const offShiftReplies = [
 
 type Message =
   | { role: "assistant" | "user"; text: string }
-  | { role: "document"; docType: "engine-room" | "oil-record"; title: string };
+  | { role: "document"; docType: "engine-room" | "oil-record"; title: string; documentId?: number };
 type BackendStatus = "connecting" | "ready" | "degraded" | "offline";
 type DemoEntry = { ai: string; user: string | null; fieldsUpdated: string[] };
 type CompletedDemoDoc = {
@@ -380,6 +387,11 @@ export function VoiceHomeV2() {
   const [inputText, setInputText] = useState(() => persistedInputText);
   const [showInput, setShowInput] = useState(() => persistedShowInput);
   const [isListening, setIsListening] = useState(false);
+  const [liveTranscript, setLiveTranscript] = useState("");
+  const [exportedDocIds, setExportedDocIds] = useState<Set<number>>(new Set());
+  const [exportingDocId, setExportingDocId] = useState<number | null>(null);
+  const [previewingDocId, setPreviewingDocId] = useState<number | null>(null);
+  const speechRecognitionRef = useRef<SpeechRecognition | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [backendStatus, setBackendStatus] = useState<BackendStatus>("connecting");
   const [backendIssue, setBackendIssue] = useState("");
@@ -390,8 +402,10 @@ export function VoiceHomeV2() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
+  const isMicRequestPendingRef = useRef(false);
   const demoScriptRef = useRef<DemoEntry[] | null>(persistedDemoScript);
   const demoStepRef = useRef(persistedDemoStep);
+  const activeDocumentRef = useRef<{ id: number; title: string; docType: "engine-room" | "oil-record" } | null>(null);
   const [completedDoc, setCompletedDoc] = useState<CompletedDemoDoc | null>(
     persistedCompletedDoc
   );
@@ -568,6 +582,15 @@ export function VoiceHomeV2() {
     mediaStreamRef.current = null;
   }, []);
 
+  const stopLiveTranscript = useCallback(() => {
+    if (speechRecognitionRef.current) {
+      speechRecognitionRef.current.onresult = null;
+      speechRecognitionRef.current.stop();
+      speechRecognitionRef.current = null;
+    }
+    setLiveTranscript("");
+  }, []);
+
   const cancelListening = useCallback(() => {
     if (listenTimer.current) {
       clearTimeout(listenTimer.current);
@@ -578,6 +601,7 @@ export function VoiceHomeV2() {
     hasRealMicRef.current = false;
     if (audioCtxRef.current) { void audioCtxRef.current.close(); audioCtxRef.current = null; }
     analyserRef.current = null;
+    stopLiveTranscript();
 
     const recorder = mediaRecorderRef.current;
     if (recorder && recorder.state !== "inactive") {
@@ -591,7 +615,7 @@ export function VoiceHomeV2() {
     stopMediaStream();
     setIsListening(false);
     setOrbState("idle");
-  }, [stopMediaStream]);
+  }, [stopMediaStream, stopLiveTranscript]);
 
   const markBackendError = useCallback((error: unknown) => {
     const message = getApiErrorMessage(error);
@@ -677,6 +701,10 @@ export function VoiceHomeV2() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
+
+  useEffect(() => {
+    if (liveTranscript) scrollToBottom();
+  }, [liveTranscript, scrollToBottom]);
 
   const sendUserMessage = useCallback(async (text: string) => {
     if (!text.trim()) return;
@@ -779,6 +807,139 @@ export function VoiceHomeV2() {
     }
   }, [ensureBackendSession, isSending, markBackendError, refreshBackendSession]);
 
+  // ─── Real document answer ────────────────────────────────────────────────────
+  const sendDocumentAnswer = useCallback(async (text: string) => {
+    const doc = activeDocumentRef.current;
+    if (!doc || !text.trim()) return;
+    if (isSending) return;
+
+    setMessages(prev => [...prev, { role: "user", text: text.trim() }]);
+    setOrbState("speaking");
+    setIsSending(true);
+    setBackendIssue("");
+
+    try {
+      const session = await ensureBackendSession();
+      const state = await respondToDocument(session.token, doc.id, text.trim());
+
+      if (state.readyForReview) {
+        activeDocumentRef.current = null;
+
+        // Save to past docs immediately — regardless of whether user exports
+        const completed = { docType: doc.docType, title: doc.title, timestamp: new Date() };
+        if (!completedDocs.some(d => d.title === completed.title)) completedDocs.unshift(completed);
+
+        setMessages(prev => [
+          ...prev,
+          { role: "assistant", text: "All fields are filled. Review your document below and export when ready." },
+          { role: "document", docType: doc.docType, title: doc.title, documentId: doc.id },
+        ]);
+      } else if (state.nextQuestion) {
+        // Only show the next field question — no LLM advice
+        setMessages(prev => [...prev, { role: "assistant", text: state.nextQuestion! }]);
+      }
+    } catch (error) {
+      const msg = getApiErrorMessage(error);
+      setMessages(prev => [...prev, { role: "assistant", text: `I couldn't save that answer. ${msg}` }]);
+    } finally {
+      setIsSending(false);
+      setTimeout(() => setOrbState("idle"), 900);
+    }
+  }, [ensureBackendSession, isSending]);
+
+  const exportDocument = useCallback(async (documentId: number, title: string) => {
+    if (exportingDocId === documentId) return;
+    setExportingDocId(documentId);
+    try {
+      const session = await ensureBackendSession();
+      const finalState = await finalizeDocument(session.token, documentId);
+      const output = (finalState as unknown as { output?: { id: number } }).output;
+      if (output?.id) {
+        await downloadDocumentOutput(session.token, output.id, `${title}.pdf`);
+        setExportedDocIds(prev => new Set([...prev, documentId]));
+      }
+    } catch (error) {
+      const msg = getApiErrorMessage(error);
+      setBackendIssue(msg);
+    } finally {
+      setExportingDocId(null);
+    }
+  }, [ensureBackendSession, exportingDocId]);
+
+  // ─── Start a real document (falls back to demo if backend unavailable) ───────
+  const startRealDocument = useCallback(async (
+    templateCode: string,
+    demoScript: DemoEntry[],
+    docType: "engine-room" | "oil-record",
+    title: string
+  ) => {
+    setShowSidebar(false);
+    setBackendIssue("");
+
+    // Try real backend first
+    try {
+      const session = await ensureBackendSession();
+
+      // Create document run
+      const created = await createDocument(session.token, templateCode, title, session.sessionId);
+      const docId = created.document.id;
+      activeDocumentRef.current = { id: docId, title, docType };
+      demoScriptRef.current = null; // not in demo mode
+
+      // Auto-fill known profile fields from currentUser
+      const prefillFields: Array<[string, string]> = templateCode === "engine-room-log-v1"
+        ? [
+            ["vessel_name",      currentUser.vessel],
+            ["official_number",  currentUser.vesselOfficialNumber],
+            ["imo_number",       currentUser.imoNumber],
+            ["gross_tonnage",    currentUser.grossTonnage + " GT"],
+            ["flag",             currentUser.flag],
+            ["watch_date",       new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })],
+            ["watch_period",     currentUser.currentShift.label + " · " + currentUser.currentShift.start + "–" + currentUser.currentShift.end],
+            ["engineer_name",    currentUser.name],
+            ["engineer_rank",    currentUser.role + " (" + currentUser.rank + ")"],
+            ["main_engine_type", currentUser.engineRoomPrefill.mainEngineType],
+            ["fuel_type",        currentUser.engineRoomPrefill.fuelType],
+          ]
+        : [
+            ["vessel_name",          currentUser.vessel],
+            ["official_number",      currentUser.vesselOfficialNumber],
+            ["imo_number",           currentUser.imoNumber],
+            ["gross_tonnage",        currentUser.grossTonnage + " GT"],
+            ["owner",                currentUser.owner],
+            ["entry_date",           new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })],
+            ["engineer_name",        currentUser.name],
+            ["engineer_rank",        currentUser.role + " (" + currentUser.rank + ")"],
+            ["sludge_tank_id",       currentUser.oilRecordPrefill.sludgeTank],
+            ["sludge_tank_capacity", currentUser.oilRecordPrefill.sludgeTankCapacity],
+          ];
+
+      await Promise.all(prefillFields.map(([field, value]) =>
+        updateDocumentField(session.token, docId, field, value)
+      ));
+
+      // Fetch updated state after prefill to get nextQuestion
+      const state = await getDocument(session.token, docId);
+
+      const intro = templateCode === "engine-room-log-v1"
+        ? `Starting your Engine Room Log for the ${currentUser.currentShift.start}–${currentUser.currentShift.end} watch. I've pre-filled the vessel particulars, your name, rank, and today's date. ${state.nextQuestion ?? ""}`
+        : `Opening an Oil Record Book entry for today — Section C: collection of oil residues. I've pre-filled the vessel particulars, your details, and the sludge tank information. ${state.nextQuestion ?? ""}`;
+
+      setOrbState("speaking");
+      setTimeout(() => {
+        setMessages(prev => [...prev, { role: "assistant", text: intro }]);
+        setTimeout(() => setOrbState("idle"), 1800);
+      }, 600);
+      return;
+    } catch (err) {
+      console.error("[startRealDocument] failed, falling back to demo:", err);
+      activeDocumentRef.current = null;
+    }
+
+    // Demo fallback
+    startDemo(demoScript);
+  }, [ensureBackendSession, startDemo]);
+
   const stopRecording = useCallback(() => {
     if (listenTimer.current) {
       clearTimeout(listenTimer.current);
@@ -796,25 +957,96 @@ export function VoiceHomeV2() {
 
   const handleMicToggle = useCallback(async () => {
     if (isSending) return;
+    if (isMicRequestPendingRef.current) return;
 
     if (demoScriptRef.current !== null) {
       handleDemoMicToggle();
       return;
     }
 
+    // ── Stop ──────────────────────────────────────────────────────────────────
     if (isListening) {
-      if (!stopRecording()) {
+      if (speechRecognitionRef.current) {
+        // SR path: stop() triggers onend which sends the accumulated text
+        speechRecognitionRef.current.stop();
+      } else if (!stopRecording()) {
         setIsListening(false);
         void sendUserMessage(sampleVoiceText());
       }
       return;
     }
 
+    // ── Start ─────────────────────────────────────────────────────────────────
+    const SRClass = window.SpeechRecognition ??
+      (window as unknown as { webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition;
+
+    if (SRClass) {
+      // Primary path: SpeechRecognition gives real-time interim results and
+      // sends the final transcript as text — no MediaRecorder conflict.
+      isMicRequestPendingRef.current = true;
+      let accumulated = "";
+
+      try {
+        const recognition = new SRClass();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = "en-US";
+
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
+          let interim = "";
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            if (event.results[i].isFinal) {
+              accumulated += event.results[i][0].transcript + " ";
+            } else {
+              interim += event.results[i][0].transcript;
+            }
+          }
+          setLiveTranscript(accumulated + interim);
+        };
+
+        recognition.onend = () => {
+          speechRecognitionRef.current = null;
+          setLiveTranscript("");
+          setIsListening(false);
+          setOrbState("idle");
+          const finalText = accumulated.trim();
+          if (finalText) {
+            if (activeDocumentRef.current) {
+              void sendDocumentAnswer(finalText);
+            } else {
+              void sendUserMessage(finalText);
+            }
+          }
+        };
+
+        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+          if (event.error === "aborted") return;
+          speechRecognitionRef.current = null;
+          setLiveTranscript("");
+          setIsListening(false);
+          setOrbState("idle");
+        };
+
+        recognition.start();
+        speechRecognitionRef.current = recognition;
+        isMicRequestPendingRef.current = false;
+        setIsListening(true);
+        setOrbState("listening");
+      } catch {
+        isMicRequestPendingRef.current = false;
+        // SR failed — fall through to MediaRecorder below
+      }
+
+      if (speechRecognitionRef.current) return;
+    }
+
+    // Fallback: MediaRecorder + Whisper (browsers without SpeechRecognition)
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
       void sendUserMessage(sampleVoiceText());
       return;
     }
 
+    isMicRequestPendingRef.current = true;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mimeType = getPreferredRecordingMimeType();
@@ -827,9 +1059,7 @@ export function VoiceHomeV2() {
       recordedChunksRef.current = [];
 
       recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          recordedChunksRef.current.push(event.data);
-        }
+        if (event.data.size > 0) recordedChunksRef.current.push(event.data);
       };
 
       recorder.onstop = () => {
@@ -840,20 +1070,21 @@ export function VoiceHomeV2() {
 
         const finalMimeType = recorder.mimeType || "audio/webm";
         const blob = new Blob(recordedChunksRef.current, { type: finalMimeType });
-
         mediaRecorderRef.current = null;
         recordedChunksRef.current = [];
         stopMediaStream();
         setIsListening(false);
 
         if (blob.size > 0) {
-          void sendRecordedAudio(blob);
+          if (activeDocumentRef.current) void sendRecordedAudio(blob); // Whisper → respondToDocument handled separately for now
+          else void sendRecordedAudio(blob);
         } else {
           void sendUserMessage(sampleVoiceText());
         }
       };
 
       recorder.start();
+      isMicRequestPendingRef.current = false;
       setIsListening(true);
       setOrbState("listening");
 
@@ -883,6 +1114,7 @@ export function VoiceHomeV2() {
         // fall back to simulated amplitude
       }
     } catch (error) {
+      isMicRequestPendingRef.current = false;
       setIsListening(false);
       setBackendIssue(getApiErrorMessage(error));
       void sendUserMessage(sampleVoiceText());
@@ -892,6 +1124,7 @@ export function VoiceHomeV2() {
     isListening,
     isSending,
     sampleVoiceText,
+    sendDocumentAnswer,
     sendRecordedAudio,
     sendUserMessage,
     stopMediaStream,
@@ -917,7 +1150,6 @@ export function VoiceHomeV2() {
 
   const stateHint =
     isSending ? "Sending…" :
-    orbState === "listening" ? "Tap again to send" :
     orbState === "speaking" ? "BlueCore" : "Tap to speak";
   const stateHintColor =
     orbState === "listening"
@@ -1027,6 +1259,9 @@ export function VoiceHomeV2() {
           <AnimatePresence initial={false}>
             {messages.map((msg, i) => {
               if (msg.role === "document") {
+                const docId = msg.documentId;
+                const isExported = docId !== undefined && exportedDocIds.has(docId);
+                const isExporting = docId !== undefined && exportingDocId === docId;
                 return (
                   <motion.div
                     key={i}
@@ -1035,8 +1270,7 @@ export function VoiceHomeV2() {
                     transition={{ duration: 0.4 }}
                     className="flex mb-3 justify-start"
                   >
-                    <button
-                      onClick={() => navigate("/document-preview", { state: { docType: msg.docType, title: msg.title } })}
+                    <div
                       className="max-w-[85%] text-left"
                       style={{
                         background: "rgba(255,255,255,0.7)",
@@ -1057,21 +1291,48 @@ export function VoiceHomeV2() {
                         <div>
                           <div className="text-sm font-medium" style={{ color: "#1a3260" }}>{msg.title}</div>
                           <div className="text-[11px] mt-0.5" style={{ color: "rgba(37,70,127,0.45)" }}>
-                            All fields complete · Tap to review
+                            All fields complete · Saved to Past Documents
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <div
-                          className="flex items-center gap-1.5 rounded-full px-2.5 py-1"
-                          style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)" }}
-                        >
-                          <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#22c55e" }} />
-                          <span className="text-[10px] tracking-wide" style={{ color: "#16a34a" }}>Ready to export</span>
-                        </div>
-                        <span className="text-[10px] ml-auto" style={{ color: "rgba(37,70,127,0.3)" }}>Tap to open →</span>
+                      <div className="flex items-center gap-2 mt-2">
+                        {docId !== undefined && (
+                          <button
+                            onClick={() => void exportDocument(docId, msg.title)}
+                            disabled={isExporting || isExported}
+                            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium transition-all"
+                            style={{
+                              background: isExported ? "rgba(34,197,94,0.1)" : "rgba(37,70,127,0.12)",
+                              border: isExported ? "1px solid rgba(34,197,94,0.3)" : "1px solid rgba(37,70,127,0.2)",
+                              color: isExported ? "#16a34a" : "#1a3260",
+                              opacity: isExporting ? 0.6 : 1,
+                            }}
+                          >
+                            {isExporting ? "Generating…" : isExported ? "✓ Exported" : "Export PDF"}
+                          </button>
+                        )}
+                        {docId !== undefined && (
+                          <button
+                            onClick={async () => {
+                              if (previewingDocId === docId) return;
+                              setPreviewingDocId(docId);
+                              try {
+                                const session = await ensureBackendSession();
+                                await openDocumentPreview(session.token, docId);
+                              } catch {
+                                // ignore
+                              } finally {
+                                setPreviewingDocId(null);
+                              }
+                            }}
+                            className="text-[11px] ml-auto"
+                            style={{ color: previewingDocId === docId ? "rgba(37,70,127,0.25)" : "rgba(37,70,127,0.4)" }}
+                          >
+                            {previewingDocId === docId ? "Opening…" : "Preview →"}
+                          </button>
+                        )}
                       </div>
-                    </button>
+                    </div>
                   </motion.div>
                 );
               }
@@ -1117,6 +1378,37 @@ export function VoiceHomeV2() {
                 </motion.div>
               );
             })}
+          </AnimatePresence>
+
+          {/* Live transcript — appears as a pending user bubble while recording */}
+          <AnimatePresence>
+            {isListening && liveTranscript && (
+              <motion.div
+                key="live-transcript"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 6 }}
+                transition={{ duration: 0.18 }}
+                className="flex mb-2 justify-end"
+              >
+                <div
+                  className="max-w-[82%] px-4 py-2.5 text-sm leading-relaxed"
+                  style={{
+                    background: "var(--app-accent-softer)",
+                    border: "1px solid var(--app-accent-border-14)",
+                    color: "var(--app-fg)",
+                    borderRadius: "16px 16px 4px 16px",
+                    opacity: 0.75,
+                  }}
+                >
+                  {liveTranscript}
+                  <span
+                    className="inline-block w-[2px] h-[13px] ml-[2px] align-middle animate-pulse"
+                    style={{ background: "var(--app-fg)", borderRadius: 1 }}
+                  />
+                </div>
+              </motion.div>
+            )}
           </AnimatePresence>
         </div>
 
@@ -1166,30 +1458,13 @@ export function VoiceHomeV2() {
           >
             <button
               onClick={handleMicToggle}
-              className="focus:outline-none relative bg-transparent border-0 p-0"
-              style={{ background: "transparent" }}
+              className="focus:outline-none relative bg-transparent border-0 p-0 block"
+              style={{ background: "transparent", width: 240, height: 240, touchAction: "manipulation", display: "flex", alignItems: "center", justifyContent: "center" }}
             >
+              <div className="absolute inset-0" />
               <WireframeOrb state={orbState} ampRef={ampRef} />
             </button>
 
-            {/* State hint */}
-            <motion.div
-              className="mt-1"
-              animate={{ opacity: orbState === "listening" ? 1 : [0.3, 0.6, 0.3] }}
-              transition={
-                orbState === "listening"
-                  ? { duration: 0.3 }
-                  : { duration: 2.8, repeat: Infinity }
-              }
-            >
-              <span
-                title={backendIssue || undefined}
-                className="text-[11px] tracking-widest uppercase transition-colors duration-300"
-                style={{ color: stateHintColor }}
-              >
-                {stateHint}
-              </span>
-            </motion.div>
           </motion.div>
         </motion.div>
 
@@ -1265,7 +1540,10 @@ export function VoiceHomeV2() {
                     disabled={isSending}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" && !isSending) { sendUserMessage(inputText); }
+                      if (e.key === "Enter" && !isSending) {
+                        if (activeDocumentRef.current) { void sendDocumentAnswer(inputText); setInputText(""); }
+                        else sendUserMessage(inputText);
+                      }
                       if (e.key === "Escape") { setInputText(""); }
                     }}
                   />
@@ -1343,7 +1621,10 @@ export function VoiceHomeV2() {
                     badge: "Due at 16:00",
                     badgeBg: "rgba(245,158,11,0.15)",
                     badgeColor: "#d97706",
-                    script: DEMO_SCRIPT_ENGINE_ROOM,
+                    templateCode: "engine-room-log-v1",
+                    docType: "engine-room" as const,
+                    demoScript: DEMO_SCRIPT_ENGINE_ROOM,
+                    title: `Engine Room Log — ${new Date().toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}`,
                   },
                   {
                     label: "Oil Record Book (CG-4602A)",
@@ -1351,12 +1632,15 @@ export function VoiceHomeV2() {
                     badge: "Required daily",
                     badgeBg: "rgba(239,68,68,0.1)",
                     badgeColor: "#ef4444",
-                    script: DEMO_SCRIPT_OIL_RECORD,
+                    templateCode: "oil-record-book-v1",
+                    docType: "oil-record" as const,
+                    demoScript: DEMO_SCRIPT_OIL_RECORD,
+                    title: `Oil Record Book Part I — ${new Date().toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}`,
                   },
                 ].map((doc) => (
                   <button
                     key={doc.label}
-                    onClick={() => { startDemo(doc.script); setShowSidebar(false); }}
+                    onClick={() => { void startRealDocument(doc.templateCode, doc.demoScript, doc.docType, doc.title); }}
                     className="w-full flex items-center gap-3 px-5 py-3.5"
                     style={{ borderBottom: `1px solid rgba(${theme === "light" ? "37,70,127" : "255,255,255"},0.05)` }}
                   >

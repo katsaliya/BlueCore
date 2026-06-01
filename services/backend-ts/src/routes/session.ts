@@ -113,17 +113,8 @@ async function handleSessionTextMessage(
         }
       ]
     });
-  } catch (error) {
-    return {
-      status: 502,
-      body: {
-        ok: false,
-        message:
-          error instanceof Error
-            ? `Failed to store message in VectorAI bridge (${error.message})`
-            : "Failed to store message in VectorAI bridge"
-      }
-    };
+  } catch {
+    // VectorAI bridge unavailable — continue without semantic memory
   }
 
   let retrievedMatches: unknown[] = [];
@@ -137,17 +128,8 @@ async function handleSessionTextMessage(
 
     const data = queryResult.data as { matches?: unknown[] };
     retrievedMatches = data.matches ?? [];
-  } catch (error) {
-    return {
-      status: 502,
-      body: {
-        ok: false,
-        message:
-          error instanceof Error
-            ? `Failed to query VectorAI bridge (${error.message})`
-            : "Failed to query VectorAI bridge"
-      }
-    };
+  } catch {
+    // VectorAI bridge unavailable — continue without retrieved context
   }
 
   let assistantText: string;

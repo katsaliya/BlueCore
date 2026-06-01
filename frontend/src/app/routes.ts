@@ -11,8 +11,10 @@ import Login from "./screens/Login";
 import Signup from "./screens/Signup";
 import Onboarding from "./screens/Onboarding";
 import { ManagerHome } from "./screens/ManagerHome";
+import DemoShell from "./screens/DemoShell";
 
 export const router = createBrowserRouter([
+  { path: "/demo", Component: DemoShell },
   { path: "/", Component: Landing },
   { path: "/login", Component: Login },
   { path: "/signup", Component: Signup },

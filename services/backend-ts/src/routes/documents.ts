@@ -7,7 +7,7 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/requireAuth";
 import { AuthenticatedRequest } from "../types/auth";
 import { transcribeAudioFile } from "../services/voiceBridge";
-import { generatePlaceholderDocumentPdf } from "../services/documentPdfService";
+import { generateDocumentPdf } from "../services/documentPdfService";
 import {
   getDocumentOutputById,
   listDocumentOutputsForRun,
@@ -598,8 +598,9 @@ router.post("/documents/:id/export/pdf", requireAuth, async (req: AuthenticatedR
     });
   }
 
-  const pdfBuffer = await generatePlaceholderDocumentPdf({
+  const pdfBuffer = await generateDocumentPdf({
     title: state.document.title,
+    templateCode: state.template.code,
     templateName: state.template.name,
     outputMode: mode,
     completionPercent: state.completionPercent,
@@ -663,8 +664,9 @@ router.post("/documents/:id/finalize", requireAuth, async (req: AuthenticatedReq
     });
   }
 
-  const pdfBuffer = await generatePlaceholderDocumentPdf({
+  const pdfBuffer = await generateDocumentPdf({
     title: state.document.title,
+    templateCode: state.template.code,
     templateName: state.template.name,
     outputMode: "final",
     completionPercent: state.completionPercent,

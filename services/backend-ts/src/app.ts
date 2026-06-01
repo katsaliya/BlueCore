@@ -9,8 +9,10 @@ import authRouter from "./routes/auth";
 import documentsRouter from "./routes/documents";
 import { env } from "./config/env";
 import { runMigrations } from "./db/migrate";
+import { seedMaritimeTemplates } from "./db/seedMaritimeTemplates";
 
 runMigrations();
+seedMaritimeTemplates();
 
 const app = express();
 const allowedOrigins = env.CORS_ORIGIN.split(",")
